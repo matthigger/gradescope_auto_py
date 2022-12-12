@@ -1,0 +1,2 @@
+assert get_circle_area(radius=1) == pi, 'get_circle_area(radius=1)  (1 pts)'
+assert get_circle_area(radius=10) == 100 * pi, 'get_circle_area(radius=1) (2 pts)'
