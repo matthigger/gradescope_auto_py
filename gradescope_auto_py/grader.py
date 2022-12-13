@@ -114,6 +114,10 @@ class Grader:
         # lookup which assertion is being recorded
         afp = AssertForPoints(s=msg)
 
+        if afp not in self.afp_pts_dict.keys():
+            warn(f'assert for points not in rubric: {afp.s}')
+            return
+
         # record if test passes
         self.afp_pts_dict[afp] = passes
 
@@ -135,6 +139,6 @@ class Grader:
             list_dicts.append(d)
 
             if warn_on_missing and np.isnan(passes):
-                warn(f'not recorded: {afp.s}')
+                warn(f'test missing in submission: {afp.s}')
 
         return pd.DataFrame(list_dicts)
