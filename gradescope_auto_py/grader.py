@@ -1,12 +1,14 @@
 import ast
-import pathlib
+import secrets
+import subprocess
+import sys
 from copy import copy
 from warnings import warn
 
-import numpy as np
 import pandas as pd
 
 from gradescope_auto_py.assert_for_pts import AssertForPoints, NoPointsInAssert
+from gradescope_auto_py.grader_config import GraderConfig
 
 
 class Grader:
@@ -17,29 +19,70 @@ class Grader:
             points earned by student
     """
 
-    @classmethod
-    def prep_file(cls, file, file_out=None, file_config='grader_config.txt',
-                  print_table=True):
-        """ modifies a py file to be run by Grader
+    def __init__(self, file, grader_config=None, file_prep='prep.py'):
+        # prepare submission to run
+        s_file_prep, token = self.prep_file(file=file)
+        with open(file_prep, 'w') as f:
+            print(s_file_prep, file=f, end='')
 
-        1. adds an import and call to Grader.__init__ to build grader
-        2. replaces each assert with grader._assert()
-        3. adds an export (to json or otherwise) to end of file
+        # run submission & store stdout & stderr
+        result = subprocess.run([sys.executable, file_prep],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        self.stdout = result.stdout.decode('utf-8')
+        self.stderr = result.stderr.decode('utf-8')
+
+        # load config from submission (may have been modified!) if needed
+        # (safer to pass grader_config built from canonical source assignment)
+        if grader_config is None:
+            grader_config = GraderConfig.from_py(file)
+
+        # init pts earned to not a number per AssertForPoint
+        self.afp_pts_dict = {afp: None for afp in grader_config}
+
+        # record output from stdout and stderr
+        self.parse_output(token=token)
+
+    def parse_output(self, token):
+        # parse stdout to determine which tests passed
+        for line in self.stdout.split('\n'):
+            if token not in line:
+                # no token in line, ignore it
+                continue
+
+            # parse assert for points & passes
+            afp_s, s_passes = line.split(token)
+
+            # parse s_passes
+            if 'True' in s_passes:
+                passes = True
+            elif 'False' in s_passes:
+                passes = False
+            else:
+                RuntimeError('invalid assert statement feedback')
+
+            # record
+            afp = AssertForPoints(s=afp_s)
+            if afp not in self.afp_pts_dict.keys():
+                warn(f'assert for points (not in config): {afp.s}')
+            else:
+                self.afp_pts_dict[afp] = passes
+
+    @classmethod
+    def prep_file(cls, file, token=None):
+        """ loads file, replaces each assert with grader._assert()
 
         Args:
-            file (str): an input .py file (student copy)
-            file_out (str): output file.  defaults to appending "_prep" to
-                input file.  If False, no output file is written.
-            file_config (str): configuration file to be loaded (by loading pt
-                values from a config file we ensure students can't modify
-                number and type of assert statements in configuration)
-            print_table (bool): if True, prepared file prints markdown table of
-                results (one row per assert)
+            file (path): a student's py file submission
+            token (str): some uniquely identifiable (and not easily guessed)
+                string.  used to identify which asserts passed when file is run
 
         Returns:
-            s_file_new (str): string of new python file (prepped)
-            file_out (str): path to output file (None if not written)
+            s_file_prep (str): string of new python file (prepped)
+            token (str): token used
         """
+        if token is None:
+            token = secrets.token_urlsafe()
 
         # AssertTransformer converts asserts to grader._assert
         # https://docs.python.org/3/library/ast.html#ast.NodeTransformer
@@ -52,81 +95,28 @@ class Grader:
                     # assert statement, but not for points, leave unchanged
                     return node
 
-                # replace node with new_node, a call to grader._assert()
-                s_grader_assert = f'grader._assert(passes=1, msg=2)'
+                # build new node which prints afp.s, token, whether test passed
+                s_grader_assert = f'print(1, 2)'
                 new_node = ast.parse(s_grader_assert).body[0]
-                new_node.value.keywords[0].value = node.test
-                new_node.value.keywords[1].value = ast.Constant(afp.s)
+                new_node.value.args = [ast.Constant(afp.s),
+                                       ast.Constant(token),
+                                       node.test]
 
                 return new_node
 
         # parse file, convert all asserts
         with open(file, 'r') as f:
             s_file = f.read()
+
+        assert 'grader_self' not in s_file, "'grader_self' in submission"
+
         node_root = ast.parse(s_file)
         AssertTransformer().visit(node_root)
 
-        # add grader import & init to top of file
-        s_start = '\n'.join([
-            'import gradescope_auto_py as gap\n',
-            f"grader_config = gap.GraderConfig.from_txt('{file_config}')",
-            f'grader = gap.Grader(grader_config)\n\n'])
+        return ast.unparse(node_root), token
 
-        # add grader export (json) to bottom of file (not impleme'nted yet)
-        s_end = ''
-        if print_table:
-            s_end += '\n'.join([
-                '\n#print markdown table of results',
-                'df = grader.get_df()',
-                "del df['ast_assert']",
-                'print(df.to_markdown())'])
-
-        # build string of new file
-        s_file_new = '\n'.join([s_start, ast.unparse(node_root), s_end])
-
-        if file_out is False:
-            # don't make a new file with string (just return it)
-            return s_file_new, None
-
-        if file_out is None:
-            # default file_out
-            file_out = pathlib.Path(file)
-            file_out = file_out.with_stem(file_out.stem + '_prep')
-
-        # write output file
-        with open(file_out, 'w') as f:
-            print(s_file_new, file=f, end='')
-
-        return s_file_new, file_out
-
-    def __init__(self, grader_config):
-        # init pts earned to not a number per AssertForPoint
-        self.afp_pts_dict = {afp: np.nan for afp in grader_config}
-
-    def _assert(self, passes, msg):
-        """ assign points if assert statement passes
-
-        Args:
-            passes (bool): True if assertion passes (False otherwise)
-            msg (str): the string attribute of some AssertForPoints object from
-                the configuration
-        """
-        # lookup which assertion is being recorded
-        afp = AssertForPoints(s=msg)
-
-        if afp not in self.afp_pts_dict.keys():
-            warn(f'assert for points not in rubric: {afp.s}')
-            return
-
-        # record if test passes
-        self.afp_pts_dict[afp] = passes
-
-    def get_df(self, warn_on_missing=True):
+    def get_df(self):
         """ gets dataframe.  1 row is an AssertForPoints w/ passes
-
-        Args:
-            warn_on_missing (bool): if True, warns if an AssertForPoints is
-                missing
 
         Returns:
             df (pd.DataFrame): one col per attribute of AssertForPoints &
@@ -138,7 +128,22 @@ class Grader:
             d['passees'] = passes
             list_dicts.append(d)
 
-            if warn_on_missing and np.isnan(passes):
-                warn(f'test missing in submission: {afp.s}')
-
         return pd.DataFrame(list_dicts)
+
+    def get_json(self):
+        """ gets json in gradescope format
+
+        https://gradescope-autograders.readthedocs.io/en/latest/specs/#output-format
+
+        """
+        # init json
+        test_list = list()
+        json_dict = {'tests': test_list}
+
+        # add to json (per test case)
+        for afp, passes in self.afp_pts_dict.items():
+            test_list.append({'score': afp.pts * passes,
+                              'max_score': afp.pts,
+                              'name': afp.s})
+
+        return json_dict

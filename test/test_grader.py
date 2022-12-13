@@ -1,18 +1,20 @@
 import gradescope_auto_py as gap
 
+# build config
+file_assign = 'ex_assign.py'
+grader_config = gap.GraderConfig.from_py(file_assign)
 
-def test_grader():
-    file = 'example_hw.py'
-    file_config = 'example_hw_config.txt'
+file_submit = 'ex_submit.py'
+file_prep_expect = 'ex_submit_prep.py'
 
-    # prep file
-    s_file_prep, _ = gap.Grader.prep_file(file=file,
-                                          file_config=file_config,
-                                          file_out=False,
-                                          print_table=True)
 
-    # expected file
-    with open('example_hw_prep.py', 'r') as f:
-        s_file_prep_expected = f.read()
+def test_prep_file():
+    s_file_prep, _ = gap.Grader.prep_file(file=file_submit, token='token')
+    assert s_file_prep == open(file_prep_expect).read()
 
-    assert s_file_prep == s_file_prep_expected
+
+def test_init():
+    grader = gap.Grader(file=file_submit, grader_config=grader_config)
+
+    afp_pts_dict_expect = dict(zip(grader_config, [True, False, None]))
+    assert grader.afp_pts_dict == afp_pts_dict_expect
