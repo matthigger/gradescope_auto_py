@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import json
+import pathlib
+
+import gradescope_auto_py as gap
+
+file_json_out = pathlib.Path('results/results.json')
+folder_submit = pathlib.Path('submission')
+
+# identify file_submit
+list_py = list(folder_submit.glob('*.py'))
+if len(list_py) != 1:
+    # todo: add user error to json output
+    raise FileNotFoundError
+file_submit = list_py[0]
+
+# run autograder
+grader_config = gap.GraderConfig.from_txt('source/config.txt')
+grader = gap.Grader(file=file_submit, grader_config=grader_config)
+
+# output json
+file_json_out.parent.mkdir(exist_ok=True)
+with open(file_json_out, 'w') as f:
+    json.dump(grader.get_json(), f, sort_keys=True, indent=4)
