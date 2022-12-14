@@ -17,7 +17,7 @@ class GraderConfig(list):
         Args:
             file (str): file to write configuration to
         """
-        with open(file, 'w') as f:
+        with open(str(file), 'w') as f:
             print('\n'.join([afp.s for afp in self]), file=f)
 
     @classmethod

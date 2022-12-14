@@ -142,6 +142,9 @@ class Grader:
 
         # add to json (per test case)
         for afp, passes in self.afp_pts_dict.items():
+            if passes is None:
+                # merge cases: assert not run in submitted -> assert not passed
+                passes = False
             test_list.append({'score': afp.pts * passes,
                               'max_score': afp.pts,
                               'name': afp.s})
