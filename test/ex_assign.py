@@ -1,6 +1,15 @@
 # rubric copy (canonical copy which has all asserts & points)
 from math import pi
 
+import numpy as np
+import pandas as pd
+
+# silly statements to justify including numpy and pandas
+# (their inclusion tests detection & inclusion of modules from this file in
+# the python interpreter on gradescope)
+np.nan
+pd.DataFrame
+
 
 def get_circle_area(radius):
     pass
