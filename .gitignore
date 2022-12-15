@@ -3,3 +3,6 @@
 tmp*
 /test/autograder/
 /test/prep.py
+/dist/
+/gradescope_auto_py.egg-info/
+/venv/
