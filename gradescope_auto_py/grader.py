@@ -20,8 +20,13 @@ class Grader:
     """
 
     def __init__(self, file, grader_config=None, file_prep='prep.py'):
+        # load config from submission (may have been modified!) if needed
+        # (safer to pass grader_config built from canonical source assignment)
+        if grader_config is None:
+            grader_config = GraderConfig.from_py(file)
+
         # prepare submission to run
-        s_file_prep, token = self.prep_file(file=file)
+        s_file_prep, token = self.prep_file(file=file, afp_list=grader_config)
         with open(file_prep, 'w') as f:
             print(s_file_prep, file=f, end='')
 
@@ -32,16 +37,16 @@ class Grader:
         self.stdout = result.stdout.decode('utf-8')
         self.stderr = result.stderr.decode('utf-8')
 
-        # load config from submission (may have been modified!) if needed
-        # (safer to pass grader_config built from canonical source assignment)
-        if grader_config is None:
-            grader_config = GraderConfig.from_py(file)
-
-        # init pts earned to not a number per AssertForPoint
-        self.afp_pts_dict = {afp: None for afp in grader_config}
-
         # record output from stdout and stderr
+        self.afp_pts_dict = dict()
         self.parse_output(token=token)
+
+        # ensure parity between config and results
+        for afp in list(self.afp_pts_dict.keys()):
+            if afp not in grader_config:
+                warn(f'assert for points (not in config): {afp.s}')
+                del self.afp_pts_dict[afp]
+        assert set(self.afp_pts_dict.keys()) == set(grader_config)
 
     def parse_output(self, token):
         # parse stdout to determine which tests passed
@@ -63,17 +68,25 @@ class Grader:
 
             # record
             afp = AssertForPoints(s=afp_s)
-            if afp not in self.afp_pts_dict.keys():
-                warn(f'assert for points (not in config): {afp.s}')
-            else:
-                self.afp_pts_dict[afp] = passes
+            if afp in self.afp_pts_dict.keys():
+                raise RuntimeError(f'duplicated assert-for-points: {afp.s}')
+            self.afp_pts_dict[afp] = passes
 
     @classmethod
-    def prep_file(cls, file, token=None):
-        """ loads file, replaces each assert with grader._assert()
+    def prep_file(cls, file, afp_list=None, token=None):
+        """ loads file, replaces each assert-for-points with print of results
+
+        every assert-for-points output is a single line which has format
+
+        AssertForPoints.s {token} passes
+
+        where passes is either True or False.  this can be parsed to record
+        whether the assert passed (see parse_output())
 
         Args:
             file (path): a student's py file submission
+            afp_list (list): a list of assert for points (if not found, we'll
+                add them to the end of the prepped file)
             token (str): some uniquely identifiable (and not easily guessed)
                 string.  used to identify which asserts passed when file is run
 
@@ -83,6 +96,11 @@ class Grader:
         """
         if token is None:
             token = secrets.token_urlsafe()
+
+        if afp_list is None:
+            afp_list = list()
+
+        afp_found = set()
 
         # AssertTransformer converts asserts to grader._assert
         # https://docs.python.org/3/library/ast.html#ast.NodeTransformer
@@ -95,14 +113,10 @@ class Grader:
                     # assert statement, but not for points, leave unchanged
                     return node
 
-                # build new node which prints afp.s, token, whether test passed
-                s_grader_assert = f'print(1, 2)'
-                new_node = ast.parse(s_grader_assert).body[0]
-                new_node.value.args = [ast.Constant(afp.s),
-                                       ast.Constant(token),
-                                       node.test]
+                # record which afp were already run (from submission)
+                afp_found.add(afp)
 
-                return new_node
+                return afp.get_print_ast(token=token)
 
         # parse file, convert all asserts
         with open(file, 'r') as f:
@@ -110,8 +124,18 @@ class Grader:
 
         assert 'grader_self' not in s_file, "'grader_self' in submission"
 
+        # replace each assert-for-points with a print statement
         node_root = ast.parse(s_file)
         AssertTransformer().visit(node_root)
+
+        # add in any missing assert-for-points at end of file
+        for afp in afp_list:
+            if afp in afp_found:
+                # assert-for-points already run (in student submission)
+                continue
+
+            # assert-for-points not in submission, but in config
+            node_root.body.append(afp.get_print_ast(token))
 
         return ast.unparse(node_root), token
 

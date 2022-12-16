@@ -76,6 +76,15 @@ class AssertForPoints:
             # default to visible
             self.viz = Visibility.VISIBLE
 
+    def get_print_ast(self, token):
+        # build new node which prints afp.s, token, whether test passed
+        s_grader_assert = f'print(1, 2)'
+        new_node = ast.parse(s_grader_assert).body[0]
+        new_node.value.args = [ast.Constant(self.s),
+                               ast.Constant(token),
+                               self.ast_assert.test]
+        return new_node
+
     def __hash__(self):
         return hash(self.s)
 

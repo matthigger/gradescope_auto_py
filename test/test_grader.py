@@ -16,5 +16,5 @@ def test_prep_file():
 def test_init():
     grader = gap.Grader(file=file_submit, grader_config=grader_config)
 
-    afp_pts_dict_expect = dict(zip(grader_config, [True, False, None]))
+    afp_pts_dict_expect = dict(zip(grader_config, [True, False, False]))
     assert grader.afp_pts_dict == afp_pts_dict_expect
