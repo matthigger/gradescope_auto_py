@@ -1,6 +1,8 @@
 import ast
 import re
 
+from gradescope_auto_py.visibility import Visibility
+
 
 class NoPointsInAssert(Exception):
     pass
@@ -11,8 +13,9 @@ class AssertForPoints:
 
     Attributes:
         pts (float): number of points assert is worth
-        ast_assert (ast.Assert): Assert statement, must have
+        ast_assert (ast.Assert): Assert statement
         s (str): string of assert statement
+        viz (Visibility): visibility setting (see Visibility)
 
     >>> afp = AssertForPoints(s="assert 3+2==5, 'addition fail (3 pts)'")
     >>> afp.s
@@ -63,7 +66,15 @@ class AssertForPoints:
         match_list = re.findall(r'\d+\.?\d* pts', self.ast_assert.msg.s)
         if not len(match_list) == 1:
             raise NoPointsInAssert(self.s)
-        self.pts = float(match_list[0].split(' ')[0])
+        s_pts = match_list[0]
+        self.pts = float(s_pts.split(' ')[0])
+
+        # parse visibility setting
+        s_viz = self.ast_assert.msg.s.split(s_pts)[1]
+        self.viz = Visibility.parse(s_viz)
+        if self.viz is None:
+            # default to visible
+            self.viz = Visibility.VISIBLE
 
     def __hash__(self):
         return hash(self.s)

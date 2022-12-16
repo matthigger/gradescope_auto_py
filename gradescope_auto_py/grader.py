@@ -147,6 +147,7 @@ class Grader:
                 passes = False
             test_list.append({'score': afp.pts * passes,
                               'max_score': afp.pts,
-                              'name': afp.s})
+                              'name': afp.s,
+                              'visibility': afp.viz.value})
 
         return json_dict
