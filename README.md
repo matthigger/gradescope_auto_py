@@ -6,10 +6,9 @@
 
 ## Method
 
-1. associate point values to `assert` statements in a blank copy of assignment 
-   1. we call these "assert-for-points"
-2. students leave these assert-for-points unmodified as they write software in the assignment
-3. gradescope automatically gives points for passing assert-for-points in submitted code
+1. Associate point values to some `assert` statements in a blank copy of assignment 
+   1. Let us call these "assert-for-points"
+2. Gradescope automatically gives points for passing assert-for-points
 
 ## Usage
 
@@ -31,24 +30,24 @@ gap.build_autograder('hw0.py')
 
 This zip follows [gradescope's autograder format](https://gradescope-autograders.readthedocs.io/en/latest/specs/) and can be uploaded to any gradescope "programming assignment".
 
+## Configured asserts vs submitted asserts
+The set of all assert-for-points is defined by the file passed to `build_autograder()`.
+You can see them in the [config.txt](test/ex_config.txt) included in the autograder `.zip` produced.  A submitted assignment, however, may not have the same set of assert-for-points in the body of the code:
+  - If a submission is missing an assert-for-points from the configuration, it is appended to the end of the body of the submitted code before grading.
+    - This is helpful if you wish to hide an assert-for-points from students.   
+  - If a submission matches an assert-for-points from the configuration, it is run within the body of the student's submission.
+    - This is helpful to allow the student to control the location of the assert within their submission.
+  - If non-matching assert-for-points appears in student copy, no points are awarded (though we dont yet warn student about it [#3](https://github.com/matthigger/gradescope_auto_py/issues/3))
+
 ## Notes
-- you can control when (and if) a student sees output of every assert-for-points by adding [a visibility setting ('visible', 'hidden', 'after_due_date', 'after_published')](https://gradescope-autograders.readthedocs.io/en/latest/specs/#controlling-test-case-visibility) after the points value within an assert statement.  If none is given, the assert will default to 'visible':
+- You can control when (and if) a student sees output of every assert-for-points by adding [a visibility setting ('visible', 'hidden', 'after_due_date', 'after_published')](https://gradescope-autograders.readthedocs.io/en/latest/specs/#controlling-test-case-visibility) after the points value within an assert statement:
 
 ```python
 assert get_area(radius=1) == pi, 'case0: area from r=1 (2 pts hidden)'
 ```
 
-## Configured asserts vs submitted asserts
-The set of all assert-for-points is defined by the file passed to `build_autograder()`.
-You can see them in the [config.txt](test/ex_config.txt) included in the autograder `.zip` produced.  A submitted assignment, however, need not have the same set of assert-for-points:
-  - If a submission is missing an assert-for-points from the configuration, it is appended to the end of the body of the submitted code before grading
-    - This is necessary to hide an assert from student   
-  - If a submission matches an assert-for-points from the configuration, it is run within the body of the student's submission
-    - This is helpful to control the location of the assert within body of code
-  - If non-matching assert-for-points appears in student copy, no points are awarded (though we dont yet warn student about it [#3](https://github.com/matthigger/gradescope_auto_py/issues/3))
+  If no visibility is specified, the assert defaults to 'visible'.  Don't forget, to truly "hide" an assert from a student you'll have to remove it from the blank copy of the assignment given to students too :)
 
-
-## Notes
 - We automatically identify the modules to be installed on gradescope's
   interpreter via the blank instructor copy of assignment. Student submissions
   which import a module outside of these cannot be autograded (
