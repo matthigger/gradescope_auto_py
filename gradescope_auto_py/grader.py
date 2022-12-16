@@ -20,6 +20,8 @@ class Grader:
         afp_new (list): "new" AssertForPoints.  these are in the submitted file
             but do not match anything in the configuration.  (stored to warn
             student via get_json())
+        afp_never_run (list): these were never run because of some (runtime)
+            error in the submission
         stdout (str): stdout from student submission
         stderr (str): stderr from student submission
     """
@@ -45,6 +47,7 @@ class Grader:
         # record output from stdout and stderr
         self.afp_pts_dict = dict()
         self.afp_new = list()
+        self.afp_never_run = list()
         self.parse_output(token=token)
 
         # ensure parity between config and results
@@ -53,7 +56,11 @@ class Grader:
                 warn(f'assert for points (not in config): {afp.s}')
                 del self.afp_pts_dict[afp]
                 self.afp_new.append(afp)
-        assert set(self.afp_pts_dict.keys()) == set(grader_config)
+
+        for afp in grader_config:
+            if afp not in self.afp_pts_dict.keys():
+                warn(f'assert not run (runtime error beforehand): {afp.s}')
+                self.afp_never_run.append(afp)
 
     def parse_output(self, token):
         # parse stdout to determine which tests passed
@@ -180,11 +187,19 @@ class Grader:
             d = copy(afp.__dict__)
             d['passes'] = passes
             d['from config'] = True
+            d['run'] = True
             list_dicts.append(d)
 
         for afp in self.afp_new:
             d = copy(afp.__dict__)
             d['from config'] = False
+            d['run'] = True
+            list_dicts.append(d)
+
+        for afp in self.afp_never_run:
+            d = copy(afp.__dict__)
+            d['from config'] = True
+            d['run'] = False
             list_dicts.append(d)
 
         return pd.DataFrame(list_dicts)
@@ -200,6 +215,12 @@ class Grader:
         if self.afp_new:
             s_output += 'These asserts did not match any in configuration:\n'
             s_output += '\n'.join([afp.s for afp in self.afp_new])
+        if self.afp_never_run:
+            s_output += 'These asserts were never run (see error msg below), no points awarded:\n'
+            s_output += '\n'.join([afp.s for afp in self.afp_never_run])
+            s_output += '\n' * 3
+
+        s_output += self.stderr
 
         # init json
         test_list = list()
