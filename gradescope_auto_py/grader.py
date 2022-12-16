@@ -80,6 +80,28 @@ class Grader:
             self.afp_pts_dict[afp] = passes
 
     @classmethod
+    def check_for_syntax_error(cls, file):
+        """ returns json describing syntax error for gradescope (or None)
+
+        Args:
+            file (str): submitted file
+
+        Returns:
+            json_dict (dict): contains key 'output' whose value is a string
+                which describes error
+        """
+        with open(file, 'r') as f:
+            s_file = f.read()
+
+        try:
+            ast.parse(s_file)
+            return None
+        except SyntaxError as err:
+            s = 'Syntax error found (no points awarded by autograder):'
+            s = '\n'.join([s, str(err), err.text])
+            return {'output': s}
+
+    @classmethod
     def prep_file(cls, file, afp_list=None, token=None):
         """ loads file, replaces each assert-for-points with print of results
 

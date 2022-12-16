@@ -14,11 +14,16 @@ if len(list_py) != 1:
     raise FileNotFoundError
 file_submit = list_py[0]
 
-# run autograder
-grader_config = gap.GraderConfig.from_txt('source/config.txt')
-grader = gap.Grader(file=file_submit, grader_config=grader_config)
+# check if syntax error found
+json_dict = gap.Grader.check_for_syntax_error(file_submit)
+
+# run autograder (if no syntax errors found)
+if json_dict is None:
+    grader_config = gap.GraderConfig.from_txt('source/config.txt')
+    grader = gap.Grader(file=file_submit, grader_config=grader_config)
+    json_dict = grader.get_json()
 
 # output json
 file_json_out.parent.mkdir(exist_ok=True)
 with open(file_json_out, 'w') as f:
-    json.dump(grader.get_json(), f, sort_keys=True, indent=4)
+    json.dump(json_dict, f, sort_keys=True, indent=4)
