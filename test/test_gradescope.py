@@ -7,6 +7,7 @@ from gradescope_auto_py.gradescope.build_auto import *
 
 def test_build_autograder():
     file_assign = 'ex_assign.py'
+    file_submit = 'ex_submit.py'
 
     # setup paths
     folder = pathlib.Path('autograder')
@@ -21,7 +22,7 @@ def test_build_autograder():
     folder_source.mkdir(parents=True)
     folder_submit = folder / 'submission'
     folder_submit.mkdir()
-    shutil.copy(file_assign, folder_submit / file_assign)
+    shutil.copy(file_submit, folder_submit / file_submit)
 
     # build autograder zip
     build_autograder(file_assign=file_assign, file_zip_out=file_auto_zip)

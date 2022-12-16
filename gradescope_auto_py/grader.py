@@ -17,6 +17,11 @@ class Grader:
     Attributes:
         afp_pts_dict (dict): keys are AssertForPoints, values are number of
             points earned by student
+        afp_new (list): "new" AssertForPoints.  these are in the submitted file
+            but do not match anything in the configuration.  (stored to warn
+            student via get_json())
+        stdout (str): stdout from student submission
+        stderr (str): stderr from student submission
     """
 
     def __init__(self, file, grader_config=None, file_prep='prep.py'):
@@ -39,6 +44,7 @@ class Grader:
 
         # record output from stdout and stderr
         self.afp_pts_dict = dict()
+        self.afp_new = list()
         self.parse_output(token=token)
 
         # ensure parity between config and results
@@ -46,6 +52,7 @@ class Grader:
             if afp not in grader_config:
                 warn(f'assert for points (not in config): {afp.s}')
                 del self.afp_pts_dict[afp]
+                self.afp_new.append(afp)
         assert set(self.afp_pts_dict.keys()) == set(grader_config)
 
     def parse_output(self, token):
@@ -149,7 +156,13 @@ class Grader:
         list_dicts = list()
         for afp, passes in self.afp_pts_dict.items():
             d = copy(afp.__dict__)
-            d['passees'] = passes
+            d['passes'] = passes
+            d['from config'] = True
+            list_dicts.append(d)
+
+        for afp in self.afp_new:
+            d = copy(afp.__dict__)
+            d['from config'] = False
             list_dicts.append(d)
 
         return pd.DataFrame(list_dicts)
@@ -160,15 +173,19 @@ class Grader:
         https://gradescope-autograders.readthedocs.io/en/latest/specs/#output-format
 
         """
+        # build output string (for whole submission)
+        s_output = ''
+        if self.afp_new:
+            s_output += 'These asserts did not match any in configuration:\n'
+            s_output += '\n'.join([afp.s for afp in self.afp_new])
+
         # init json
         test_list = list()
-        json_dict = {'tests': test_list}
+        json_dict = {'tests': test_list,
+                     'output': s_output}
 
         # add to json (per test case)
         for afp, passes in self.afp_pts_dict.items():
-            if passes is None:
-                # merge cases: assert not run in submitted -> assert not passed
-                passes = False
             test_list.append({'score': afp.pts * passes,
                               'max_score': afp.pts,
                               'name': afp.s,

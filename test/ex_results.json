@@ -1,9 +1,10 @@
 {
+    "output": "These asserts did not match any in configuration:\nassert 3 + 1 == 4, 'this assert was not in config (99999 pts)'",
     "tests": [
         {
             "max_score": 1.0,
             "name": "assert get_circle_area(radius=1) == pi, 'get_circle_area(radius=1)  (1 pts)'",
-            "score": 0.0,
+            "score": 1.0,
             "visibility": "visible"
         },
         {
