@@ -21,7 +21,8 @@ json_dict = gap.Grader.check_for_syntax_error(file=file_submit,
 
 # run autograder (if no syntax errors found)
 if json_dict is None:
-    grader = gap.Grader(file=file_submit, grader_config=grader_config)
+    grader = gap.Grader(grader_config=grader_config)
+    grader.grade(file=file_submit)
     json_dict = grader.get_json()
 
 # output json

@@ -2,6 +2,7 @@ import ast
 import secrets
 import subprocess
 import sys
+import tempfile
 from copy import copy
 from warnings import warn
 
@@ -24,14 +25,23 @@ class Grader:
         stderr (str): stderr from student submission
     """
 
-    def __init__(self, file, grader_config=None, file_prep='prep.py'):
-        # load config from submission (may have been modified!) if needed
-        # (safer to pass grader_config built from canonical source assignment)
-        if grader_config is None:
-            grader_config = GraderConfig.from_py(file)
+    def __init__(self, grader_config):
+        self.grader_config = grader_config
 
-        # prepare submission to run
-        s_file_prep, token = self.prep_file(file=file, afp_list=grader_config)
+        self.afp_pass_dict = dict()
+        self.stdout = ''
+        self.stderr = ''
+
+    def grade(self, file):
+        """ grades submission (gets attributes: afp_pass_dict, stdout & stderr)
+
+        Args:
+            file (str): student submission for assignment
+        """
+        # prepare submission file to run
+        file_prep = tempfile.NamedTemporaryFile(suffix='.py').name
+        s_file_prep, token = self.prep_file(file=file,
+                                            afp_list=self.grader_config)
         with open(file_prep, 'w') as f:
             print(s_file_prep, file=f, end='')
 
@@ -39,12 +49,11 @@ class Grader:
         result = subprocess.run([sys.executable, file_prep],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
+
+        # record output from stdout and stderr & parse for which asserts pass
         self.stdout = result.stdout.decode('utf-8')
         self.stderr = result.stderr.decode('utf-8')
-
-        # record output from stdout and stderr
         self.afp_pass_dict = dict()
-        self.grader_config = grader_config
         self.parse_output(token=token)
 
     def parse_output(self, token):

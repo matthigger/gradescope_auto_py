@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import stat
 from collections import namedtuple
 
@@ -58,4 +59,13 @@ def test_build_autograder():
             json_expected = json.load(f)
         with open(folder / 'results' / 'results.json', 'r') as f:
             json_observed = json.load(f)
+
+        # normalize file names (rm tempfile from error message)
+        s_output = json_observed['output']
+        s_list = re.findall('File \".+\.py\"', json_observed['output'])
+        if s_list:
+            assert len(s_list) == 1, 'non-unique file name in regex'
+            json_observed['output'] = s_output.replace(s_list[0],
+                                                       'File "submit_prep.py"')
+
         assert json_expected == json_observed, f'test case {test_idx}'

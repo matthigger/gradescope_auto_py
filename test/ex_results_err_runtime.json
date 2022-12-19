@@ -1,5 +1,5 @@
 {
-    "output": "Traceback (most recent call last):\n  File \"/home/matt/Dropbox/teach/gradescope_auto_py/test/autograder/prep.py\", line 8, in <module>\n    some_list_too_short[10]\nIndexError: list index out of range\n",
+    "output": "Traceback (most recent call last):\n  File \"submit_prep.py\", line 8, in <module>\n    some_list_too_short[10]\nIndexError: list index out of range\n",
     "tests": [
         {
             "max_score": 1.0,

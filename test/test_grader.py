@@ -15,15 +15,17 @@ def test_prep_file():
     assert s_file_prep == open(file_prep_expect).read()
 
 
-def test_init():
-    grader = gap.Grader(file=file_submit, grader_config=grader_config)
+def test_grade():
+    grader = gap.Grader(grader_config=grader_config)
+    grader.grade(file_submit)
     for afp, passes in zip(grader_config, [True, False, False]):
         assert grader.afp_pass_dict[afp] == passes
 
     # only first assert scores points before runtime error
-    grader = gap.Grader(file=file_submit_err_runtime, grader_config=grader_config)
+    grader.grade(file_submit_err_runtime)
     afp_pts_dict_expect = {grader_config[0]: True}
     assert grader.afp_pass_dict == afp_pts_dict_expect
+
 
 def test_check_for_syntax_error():
     assert gap.Grader.check_for_syntax_error(file=file_submit) is None
