@@ -15,13 +15,11 @@ class Grader:
     """ runs a py (or ipynb) file through autograder & formats out (gradescope)
 
     Attributes:
-        afp_pts_dict (dict): keys are AssertForPoints, values are number of
+        afp_pass_dict (dict): keys are AssertForPoints, values are number of
             points earned by student
-        afp_new (list): "new" AssertForPoints.  these are in the submitted file
-            but do not match anything in the configuration.  (stored to warn
-            student via get_json())
-        afp_never_run (list): these were never run because of some (runtime)
-            error in the submission
+        grader_config (GraderConfig): a list of all AssertForPoints which the
+            assignment was configured to have (not necessarily all those in the
+            student submission)
         stdout (str): stdout from student submission
         stderr (str): stderr from student submission
     """
@@ -45,24 +43,17 @@ class Grader:
         self.stderr = result.stderr.decode('utf-8')
 
         # record output from stdout and stderr
-        self.afp_pts_dict = dict()
-        self.afp_new = list()
-        self.afp_never_run = list()
+        self.afp_pass_dict = dict()
+        self.grader_config = grader_config
         self.parse_output(token=token)
 
-        # ensure parity between config and results
-        for afp in list(self.afp_pts_dict.keys()):
-            if afp not in grader_config:
-                warn(f'assert for points (not in config): {afp.s}')
-                del self.afp_pts_dict[afp]
-                self.afp_new.append(afp)
-
-        for afp in grader_config:
-            if afp not in self.afp_pts_dict.keys():
-                warn(f'assert not run (runtime error beforehand): {afp.s}')
-                self.afp_never_run.append(afp)
-
     def parse_output(self, token):
+        """ finds which AssertForPoints passes (or not) from stdout
+
+        Args:
+            token (str): token which marks output of AssertforPoints in stdout
+                (see prep_file())
+        """
         # parse stdout to determine which tests passed
         for line in self.stdout.split('\n'):
             if token not in line:
@@ -82,9 +73,9 @@ class Grader:
 
             # record
             afp = AssertForPoints(s=afp_s)
-            if afp in self.afp_pts_dict.keys():
+            if afp in self.afp_pass_dict.keys():
                 raise RuntimeError(f'duplicated assert-for-points: {afp.s}')
-            self.afp_pts_dict[afp] = passes
+            self.afp_pass_dict[afp] = passes
 
     @classmethod
     def check_for_syntax_error(cls, file, grader_config=None):
@@ -105,6 +96,7 @@ class Grader:
 
         try:
             ast.parse(s_file)
+            # no syntax errors found
             return None
         except SyntaxError as err:
             if grader_config is None:
@@ -115,7 +107,7 @@ class Grader:
             s = 'Syntax error found (no points awarded by autograder):'
             s = '\n'.join([s, str(err), err.text])
 
-            msg = 'Error (syntax) before assert statement run'
+            msg = 'Error before assert statement run'
 
             return {'output': s,
                     'tests': [afp.get_json_dict(output=msg)
@@ -196,7 +188,7 @@ class Grader:
                 another for 'passes' (see Grader._assert())
         """
         list_dicts = list()
-        for afp, passes in self.afp_pts_dict.items():
+        for afp, passes in self.afp_pass_dict.items():
             d = copy(afp.__dict__)
             d['passes'] = passes
             d['from config'] = True
@@ -230,20 +222,25 @@ class Grader:
         json_dict = {'tests': test_list,
                      'output': s_output}
 
-        # add to json (per test case)
-        for afp, passes in self.afp_pts_dict.items():
-            test_list.append(afp.get_json_dict(passes))
+        for afp, passes in self.afp_pass_dict.items():
+            if afp in self.grader_config:
+                # test case run: configured test case
+                kwargs = dict()
+            else:
+                # test case run: unconfigured test case
+                kwargs = {'output': 'assert not found in config (no pts '
+                                    'penalized or awarded)',
+                          'max_score': 0,
+                          'score': 0,
+                          'status': 'failed'}
+            test_list.append(afp.get_json_dict(passes, **kwargs))
 
-        # add to json (per test case not run (due to runtime error)
-        for afp in self.afp_never_run:
-            msg = 'Error (runtime) before assert statement run'
-            test_list.append(afp.get_json_dict(output=msg))
-
-        # add to json (per test case that was not in config)
-        for afp in self.afp_new:
-            msg = 'assert not found in config (no pts penalized or awarded)'
-            test_list.append(afp.get_json_dict(output=msg,
-                                               max_score=0,
-                                               status='failed'))
+        # add configured test cases never run
+        for afp in self.grader_config:
+            if afp not in self.afp_pass_dict.keys():
+                msg = 'Error before assert statement run'
+                test_list.append(afp.get_json_dict(output=msg,
+                                                   status='failed',
+                                                   passes=0))
 
         return json_dict

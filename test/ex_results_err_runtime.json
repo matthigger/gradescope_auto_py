@@ -10,15 +10,17 @@
         {
             "max_score": 3.0,
             "name": "assert get_circle_area(radius=2) == 4 * pi, 'get_circle_area(radius=2) (3 pts visible)'",
-            "output": "Error (runtime) before assert statement run",
+            "output": "Error before assert statement run",
             "score": 0.0,
+            "status": "failed",
             "visibility": "visible"
         },
         {
             "max_score": 2.0,
             "name": "assert get_circle_area(radius=10) == 100 * pi, 'get_circle_area(radius=10) (2 pts hidden)'",
-            "output": "Error (runtime) before assert statement run",
+            "output": "Error before assert statement run",
             "score": 0.0,
+            "status": "failed",
             "visibility": "hidden"
         }
     ]
