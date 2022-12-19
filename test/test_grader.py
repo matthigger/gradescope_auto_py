@@ -1,4 +1,5 @@
 import gradescope_auto_py as gap
+import json
 
 # build config
 file_assign = 'ex_assign.py'
@@ -31,3 +32,17 @@ def test_check_for_syntax_error():
     assert gap.Grader.check_for_syntax_error(file=file_submit) is None
 
     assert gap.Grader.check_for_syntax_error(file=file_submit_err_syntax)
+
+
+def test_get_json():
+    # manually build a "completed" grader
+    grader = gap.Grader(grader_config=grader_config)
+    for afp in grader_config:
+        grader.afp_pass_dict[afp] = True
+    grader.stdout = 'test_stdout'
+    grader.stderr = 'test_stderr'
+
+    with open('test_get_json.json', 'r') as f:
+        json_expected = json.load(f)
+
+    assert json_expected == grader.get_json()

@@ -3,10 +3,7 @@ import secrets
 import subprocess
 import sys
 import tempfile
-from copy import copy
 from warnings import warn
-
-import pandas as pd
 
 from gradescope_auto_py.assert_for_pts import AssertForPoints, NoPointsInAssert
 from gradescope_auto_py.grader_config import GraderConfig
@@ -188,35 +185,6 @@ class Grader:
             node_root.body.append(afp.get_print_ast(token))
 
         return ast.unparse(node_root), token
-
-    def get_df(self):
-        """ gets dataframe.  1 row is an AssertForPoints w/ passes
-
-        Returns:
-            df (pd.DataFrame): one col per attribute of AssertForPoints &
-                another for 'passes' (see Grader._assert())
-        """
-        list_dicts = list()
-        for afp, passes in self.afp_pass_dict.items():
-            d = copy(afp.__dict__)
-            d['passes'] = passes
-            d['from config'] = True
-            d['run'] = True
-            list_dicts.append(d)
-
-        for afp in self.afp_new:
-            d = copy(afp.__dict__)
-            d['from config'] = False
-            d['run'] = True
-            list_dicts.append(d)
-
-        for afp in self.afp_never_run:
-            d = copy(afp.__dict__)
-            d['from config'] = True
-            d['run'] = False
-            list_dicts.append(d)
-
-        return pd.DataFrame(list_dicts)
 
     def get_json(self):
         """ gets json in gradescope format
