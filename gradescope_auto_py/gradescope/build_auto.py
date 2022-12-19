@@ -9,7 +9,7 @@ folder_src = pathlib.Path(__file__).parent
 
 
 def build_autograder(file_assign, file_zip_out=None, include_assign=True,
-                     embed_requirements=True):
+                     embed_requirements=True, verbose=True):
     """ builds a directory containing autograder in gradescope format
 
     Args:
@@ -22,6 +22,7 @@ def build_autograder(file_assign, file_zip_out=None, include_assign=True,
             (not needed by gradescope, but good book-keeping)
         embed_requirements (bool): if True, avoids using the requirements.txt
             file (gradescope has trouble locating this file)
+        verbose (bool): toggles message to warn user to set "autograder points"
     """
     list_include = ['run_autograder', 'setup.sh']
 
@@ -75,6 +76,14 @@ def build_autograder(file_assign, file_zip_out=None, include_assign=True,
 
     # clean up
     shutil.rmtree(folder_tmp)
+
+    if verbose:
+        pts_total = sum([afp.pts for afp in grader_config])
+        print(f'finished building: {file_zip_out}.zip')
+        print(f'when uploading zip, be sure to set autograder points to:'
+              f' {pts_total}')
+        print('inconsistent values cause "results not formatted correctly" '
+              'error')
 
 
 if __name__ == '__main__':
