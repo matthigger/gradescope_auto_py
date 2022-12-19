@@ -30,16 +30,9 @@ gap.build_autograder('hw0.py')
 
 This zip follows [gradescope's autograder format](https://gradescope-autograders.readthedocs.io/en/latest/specs/) and can be uploaded to any gradescope "programming assignment".
 
-## Configured asserts vs submitted asserts
-The set of all assert-for-points is defined by the file passed to `build_autograder()`.
-You can see them in the [config.txt](test/ex_config.txt) included in the autograder `.zip` produced.  A submitted assignment, however, may not have the same set of assert-for-points in the body of the code:
-  - If a submission is missing an assert-for-points from the configuration, it is appended to the end of the body of the submitted code before grading.
-    - This is helpful if you wish to hide an assert-for-points from students.   
-  - If a submission matches an assert-for-points from the configuration, it is run within the body of the student's submission.
-    - This is helpful to allow the student to control the location of the assert within their submission.
-  - If non-matching assert-for-points appears in student copy, no points are awarded (though we dont yet warn student about it [#3](https://github.com/matthigger/gradescope_auto_py/issues/3))
-
 ## Notes
+- When initializing the assignment in gradescope, be sure to provide a value for "autograder points" which is the sum of points in every assert-for-points (otherwise submissions will yield a "not formatted correctly" response).
+
 - You can control when (and if) a student sees output of every assert-for-points by adding [a visibility setting ('visible', 'hidden', 'after_due_date', 'after_published')](https://gradescope-autograders.readthedocs.io/en/latest/specs/#controlling-test-case-visibility) after the points value within an assert statement:
 
 ```python
@@ -57,6 +50,15 @@ assert get_area(radius=1) == pi, 'case0: area from r=1 (2 pts hidden)'
 - The regex to extract points is `'\d+\.?\d* pts'`:
     - any decimal point value is supported
     - parentheses in example, `(2 pts)`, are optional
+
+## Configured asserts vs submitted asserts
+The set of all assert-for-points is defined by the file passed to `build_autograder()`.
+You can see them in the [config.txt](test/ex_config.txt) included in the autograder `.zip` produced.  A submitted assignment, however, may not have the same set of assert-for-points in the body of the code:
+  - If a submission is missing an assert-for-points from the configuration, it is appended to the end of the body of the submitted code before grading.
+    - This is helpful if you wish to hide an assert-for-points from students.   
+  - If a submission matches an assert-for-points from the configuration, it is run within the body of the student's submission.
+    - This is helpful to allow the student to control the location of the assert within their submission.
+  - If non-matching assert-for-points appears in student copy, no points are awarded (though we dont yet warn student about it [#3](https://github.com/matthigger/gradescope_auto_py/issues/3))
 
 ## See also
 

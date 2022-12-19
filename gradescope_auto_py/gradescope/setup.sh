@@ -7,5 +7,5 @@ pip3 install virtualenv
 # setup virtual environment and install necessary packages
 virtualenv venv
 source venv/bin/active
-pip install gradescope_auto_py
-pip install -r requirements.txt
+pip3 install gradescope_auto_py
+pip3 install -r requirements.txt

@@ -87,11 +87,14 @@ class Grader:
             self.afp_pts_dict[afp] = passes
 
     @classmethod
-    def check_for_syntax_error(cls, file):
+    def check_for_syntax_error(cls, file, grader_config=None):
         """ returns json describing syntax error for gradescope (or None)
 
         Args:
             file (str): submitted file
+            grader_config (GraderConfig): list of AssertForPoints in assignment
+                (in event of syntax error, we must mark each as a 0 or
+                gradescope will give "invalid format" error to json output)
 
         Returns:
             json_dict (dict): contains key 'output' whose value is a string
@@ -104,9 +107,19 @@ class Grader:
             ast.parse(s_file)
             return None
         except SyntaxError as err:
+            if grader_config is None:
+                grader_config = list()
+                warn(f'syntax error found in {file}: pass grader_config to '
+                     'ensure json_dict is valid input to gradescope')
+
             s = 'Syntax error found (no points awarded by autograder):'
             s = '\n'.join([s, str(err), err.text])
-            return {'output': s}
+
+            msg = 'Error (syntax) before assert statement run'
+
+            return {'output': s,
+                    'tests': [afp.get_json_dict(output=msg)
+                              for afp in grader_config]}
 
     @classmethod
     def prep_file(cls, file, afp_list=None, token=None):
@@ -210,17 +223,7 @@ class Grader:
         https://gradescope-autograders.readthedocs.io/en/latest/specs/#output-format
 
         """
-        # build output string (for whole submission)
-        s_output = ''
-        if self.afp_new:
-            s_output += 'These asserts did not match any in configuration:\n'
-            s_output += '\n'.join([afp.s for afp in self.afp_new])
-        if self.afp_never_run:
-            s_output += 'These asserts were never run (see error msg below), no points awarded:\n'
-            s_output += '\n'.join([afp.s for afp in self.afp_never_run])
-            s_output += '\n' * 3
-
-        s_output += self.stderr
+        s_output = self.stderr
 
         # init json
         test_list = list()
@@ -229,9 +232,18 @@ class Grader:
 
         # add to json (per test case)
         for afp, passes in self.afp_pts_dict.items():
-            test_list.append({'score': afp.pts * passes,
-                              'max_score': afp.pts,
-                              'name': afp.s,
-                              'visibility': afp.viz.value})
+            test_list.append(afp.get_json_dict(passes))
+
+        # add to json (per test case not run (due to runtime error)
+        for afp in self.afp_never_run:
+            msg = 'Error (runtime) before assert statement run'
+            test_list.append(afp.get_json_dict(output=msg))
+
+        # add to json (per test case that was not in config)
+        for afp in self.afp_new:
+            msg = 'assert not found in config (no pts penalized or awarded)'
+            test_list.append(afp.get_json_dict(output=msg,
+                                               max_score=0,
+                                               status='failed'))
 
         return json_dict

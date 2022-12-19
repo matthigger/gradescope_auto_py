@@ -1,11 +1,25 @@
 {
-    "output": "These asserts were never run (see error msg below), no points awarded:\nassert get_circle_area(radius=2) == 4 * pi, 'get_circle_area(radius=2) (3 pts visible)'\nassert get_circle_area(radius=10) == 100 * pi, 'get_circle_area(radius=10) (2 pts hidden)'\n\n\nTraceback (most recent call last):\n  File \"/home/matt/Dropbox/teach/gradescope_auto_py/test/autograder/prep.py\", line 8, in <module>\n    some_list_too_short[10]\nIndexError: list index out of range\n",
+    "output": "Traceback (most recent call last):\n  File \"/home/matt/Dropbox/teach/gradescope_auto_py/test/autograder/prep.py\", line 8, in <module>\n    some_list_too_short[10]\nIndexError: list index out of range\n",
     "tests": [
         {
             "max_score": 1.0,
             "name": "assert get_circle_area(radius=1) == pi, 'get_circle_area(radius=1)  (1 pts)'",
             "score": 1.0,
             "visibility": "visible"
+        },
+        {
+            "max_score": 3.0,
+            "name": "assert get_circle_area(radius=2) == 4 * pi, 'get_circle_area(radius=2) (3 pts visible)'",
+            "output": "Error (runtime) before assert statement run",
+            "score": 0.0,
+            "visibility": "visible"
+        },
+        {
+            "max_score": 2.0,
+            "name": "assert get_circle_area(radius=10) == 100 * pi, 'get_circle_area(radius=10) (2 pts hidden)'",
+            "output": "Error (runtime) before assert statement run",
+            "score": 0.0,
+            "visibility": "hidden"
         }
     ]
 }

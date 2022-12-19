@@ -76,6 +76,22 @@ class AssertForPoints:
             # default to visible
             self.viz = Visibility.VISIBLE
 
+    def get_json_dict(self, passes=False, **kwargs):
+        """ builds dict of a single `test` (see key "tests" in link)
+
+        https://gradescope-autograders.readthedocs.io/en/latest/specs/#output-format
+
+        Args:
+            passes (bool): scales points (all pts if True, no points if False)
+            kwargs: added (overwritten) values
+        """
+        json_dict = {'score': self.pts * passes,
+                     'max_score': self.pts,
+                     'name': self.s,
+                     'visibility': self.viz.value}
+        json_dict.update(kwargs)
+        return json_dict
+
     def get_print_ast(self, token):
         # build new node which prints afp.s, token, whether test passed
         s_grader_assert = f'print(1, 2)'

@@ -15,11 +15,12 @@ if len(list_py) != 1:
 file_submit = list_py[0]
 
 # check if syntax error found
-json_dict = gap.Grader.check_for_syntax_error(file_submit)
+grader_config = gap.GraderConfig.from_txt('source/config.txt')
+json_dict = gap.Grader.check_for_syntax_error(file=file_submit,
+                                              grader_config=grader_config)
 
 # run autograder (if no syntax errors found)
 if json_dict is None:
-    grader_config = gap.GraderConfig.from_txt('source/config.txt')
     grader = gap.Grader(file=file_submit, grader_config=grader_config)
     json_dict = grader.get_json()
 
