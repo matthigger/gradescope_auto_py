@@ -6,53 +6,66 @@ from collections import namedtuple
 
 from gradescope_auto_py.gradescope.build_auto import *
 
-TestCaseFile = namedtuple('TestCaseFile', ['assign', 'submit', 'json_expect'])
+TestCaseFile = namedtuple('TestCaseFile', ['submit', 'json_expect'])
 
-test_case_list = [TestCaseFile(assign='ex_assign.py',
-                               submit='ex_submit.py',
+test_case_list = [TestCaseFile(submit='ex_submit.py',
                                json_expect='ex_results.json'),
-                  TestCaseFile(assign='ex_assign.py',
-                               submit='ex_submit_err_runtime.py',
+                  TestCaseFile(submit='ex_submit_err_runtime.py',
                                json_expect='ex_results_err_runtime.json'),
-                  TestCaseFile(assign='ex_assign.py',
-                               submit='ex_submit_err_syntax.py',
+                  TestCaseFile(submit='ex_submit_err_syntax.py',
                                json_expect='ex_results_err_syntax.json')]
 
 
+def gradescope_setup(f_submit, file_auto_zip, folder=None):
+    if folder is None:
+        # temp directory
+        folder = pathlib.Path(tempfile.TemporaryDirectory().name)
+    else:
+        folder = pathlib.Path(folder)
+
+    # build directories (rm old)
+    folder_source = folder / 'source'
+    folder_submit = folder / 'submission'
+    folder_source.mkdir(parents=True)
+    folder_submit.mkdir()
+
+    # move submission into proper spot
+    shutil.copy(f_submit, folder_submit / pathlib.Path(f_submit).name)
+
+    # unzip autograder
+    shutil.unpack_archive(file_auto_zip,
+                          extract_dir=folder_source)
+
+    # move run_autograder & setup.sh to proper spot, make executable
+    for file in ['run_autograder', 'setup.sh']:
+        file = folder / file
+        shutil.move(folder_source / file.name, file)
+
+        # chmod +x run_autograder
+        st = os.stat(file)
+        os.chmod(file, st.st_mode | stat.S_IEXEC)
+
+    return folder
+
+
 def test_build_autograder():
+    # build autograder zip
+    file_auto_zip = build_autograder(file_assign='ex_assign.py',
+                                     file_include_list=['ex_other_file.py'])
+
     for test_idx, test_case in enumerate(test_case_list):
-        # setup paths
-        folder = pathlib.Path('autograder')
-        folder_source = folder / 'source'
-        file_auto_zip = folder_source / 'auto.zip'
+        # setup file structure (as gradescope does)
+        folder = gradescope_setup(f_submit=test_case.submit,
+                                  file_auto_zip=file_auto_zip)
 
-        if folder.exists():
-            # delete folder from previous run
-            shutil.rmtree(folder)
+        if test_idx == 0:
+            # run setup.sh
+            file = (folder / 'setup.sh').resolve()
+            subprocess.run(file, cwd=file.parent)
 
-        # gradescope setup 0: move submission into proper spot
-        folder_source.mkdir(parents=True)
-        folder_submit = folder / 'submission'
-        folder_submit.mkdir()
-        shutil.copy(test_case.submit, folder_submit / test_case.submit)
-
-        # build autograder zip
-        build_autograder(file_assign=test_case.assign,
-                         file_zip_out=file_auto_zip)
-
-        # gradescope setup 1: unzip & move run_autograder
-        shutil.unpack_archive(file_auto_zip,
-                              extract_dir=file_auto_zip.parent)
-        file_run_auto = folder_source.parent / 'run_autograder'
-        shutil.move(folder_source / 'run_autograder', file_run_auto)
-
-        # gradescope setup 2: chmod +x
-        st = os.stat(file_run_auto)
-        os.chmod(file_run_auto, st.st_mode | stat.S_IEXEC)
-
-        # run autograder
-        file_run_auto = file_run_auto.resolve()
-        subprocess.run(file_run_auto, cwd=file_run_auto.parent)
+        # run run_autograder
+        file = (folder / 'run_autograder').resolve()
+        subprocess.run(file, cwd=file.parent)
 
         # check that results are as expected
         with open(test_case.json_expect, 'r') as f:
@@ -69,3 +82,6 @@ def test_build_autograder():
                                                        'File "submit_prep.py"')
 
         assert json_expected == json_observed, f'test case {test_idx}'
+
+        # cleanup
+        shutil.rmtree(str(folder))
