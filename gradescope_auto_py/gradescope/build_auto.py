@@ -8,8 +8,8 @@ from gradescope_auto_py.grader_config import GraderConfig
 folder_src = pathlib.Path(__file__).parent
 
 
-def build_autograder(file_assign, file_zip_out=None, include_assign=True,
-                     embed_requirements=True, verbose=True):
+def build_autograder(file_assign, file_zip_out=None, file_include_list=None,
+                     verbose=True):
     """ builds a directory containing autograder in gradescope format
 
     Args:
@@ -18,72 +18,61 @@ def build_autograder(file_assign, file_zip_out=None, include_assign=True,
         file_zip_out (str): name of zip to create (contains setup.sh,
             requirements.txt, run_autograder.py & config.txt).  defaults to
             same name as assignment with zip suffix
-        include_assign (bool): if True, includes file_assign in the zip.
-            (not needed by gradescope, but good book-keeping)
-        embed_requirements (bool): if True, avoids using the requirements.txt
-            file (gradescope has trouble locating this file)
+        file_include_list (list): a list of files to include in zip.  these
+            will be copied over adjacent to the student submitted version of
+            file_assign (allows importing from another local file)
         verbose (bool): toggles message to warn user to set "autograder points"
+
+    Returns:
+        file_zip_out (pathlib.Path): zip file created
     """
-    list_include = ['run_autograder', 'setup.sh']
+    if file_include_list is None:
+        file_include_list = list()
+
+    list_include = [folder_src / 'run_autograder',
+                    folder_src / 'setup.sh',
+                    file_assign] + file_include_list
 
     # make temp directory
     folder_tmp = pathlib.Path(tempfile.mkdtemp())
 
+    # move run_autograder.py & setup.sh to folder
+    for file in list_include:
+        file = pathlib.Path(file)
+        shutil.copy(file, folder_tmp / file.name)
+
     # build requirements.txt
-    file_assign = pathlib.Path(file_assign).resolve()
-    if not file_assign.exists():
-        raise FileNotFoundError(file_assign)
-    file_assign_tmp = folder_tmp / file_assign.name
-    shutil.copy(file_assign, file_assign_tmp)
     process = subprocess.run(['pipreqs', folder_tmp])
     assert process.returncode == 0, 'problem building requirements.txt'
-    if not include_assign:
-        file_assign_tmp.unlink()
 
-    # build config.txt in
+    # build config.txt in folder
     grader_config = GraderConfig.from_py(file=file_assign)
     grader_config.to_txt(folder_tmp / 'config.txt')
 
-    # move run_autograder.py & setup.sh to folder
-    for file in list_include:
-        shutil.copy(folder_src / file,
-                    folder_tmp / file)
-
-    if embed_requirements:
-        # load requirements
-        f_requirements = folder_tmp / 'requirements.txt'
-        with open(f_requirements, 'r') as f:
-            s_requirements = f.read()
-
-        # explicitly place in setup.sh
-        with open(folder_tmp / 'setup.sh', 'r') as f:
-            s_setup_sh = f.read()
-        s_requirements = ' '.join(s_requirements.strip().split('\n'))
-        s_setup_sh = s_setup_sh.replace('-r requirements.txt', s_requirements)
-        with open(folder_tmp / 'setup.sh', 'w') as f:
-            print(s_setup_sh, file=f)
-
-        # delete requirements.txt
-        f_requirements.unlink()
+    # build other_files.txt in folder
+    if file_include_list:
+        file_link_list = [pathlib.Path(f).name for f in file_include_list]
+        with open(folder_tmp / 'also_include.txt', 'w') as f:
+            print('\n'.join(file_link_list), file=f)
 
     # zip it up (config, setup.sh & run_autograder)
     if file_zip_out is None:
-        file_zip_out = file_assign.with_suffix('')
-    file_zip_out = str(file_zip_out)
-    if file_zip_out.endswith('.zip'):
-        file_zip_out = file_zip_out[:-4]
+        file_zip_out = file_assign
+    file_zip_out = pathlib.Path(file_zip_out).with_suffix('')
     shutil.make_archive(file_zip_out, 'zip', folder_tmp)
+    file_zip_out = pathlib.Path(file_zip_out).with_suffix('.zip')
 
     # clean up
     shutil.rmtree(folder_tmp)
 
     if verbose:
         pts_total = sum([afp.pts for afp in grader_config])
-        print(f'finished building: {file_zip_out}.zip')
+        print(f'finished building: {file_zip_out}')
         print(f'when uploading zip, be sure to set autograder points to:'
               f' {pts_total}')
-        print('inconsistent values cause "results not formatted correctly" '
-              'error')
+        print('(inconsistent values cause "results not formatted correctly")')
+
+    return file_zip_out
 
 
 if __name__ == '__main__':
