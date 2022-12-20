@@ -63,7 +63,11 @@ class AssertForPoints:
         self.s = ast.unparse(self.ast_assert)
 
         # get points
-        match_list = re.findall(r'\d+\.?\d* pts', self.ast_assert.msg.s)
+        if self.ast_assert.msg is None:
+            # no string in assert
+            raise NoPointsInAssert(self.s)
+        s = ast.unparse(self.ast_assert.msg)
+        match_list = re.findall(r'\d+\.?\d* pts', s)
         if not len(match_list) == 1:
             raise NoPointsInAssert(self.s)
         s_pts = match_list[0]
