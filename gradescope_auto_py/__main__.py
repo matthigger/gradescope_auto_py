@@ -33,7 +33,7 @@ def main(args):
     # autograde if need be
     if args.f_submit is not None:
         grader_config = gap.GraderConfig.from_py(args.f_assign)
-        grader = gap.Grader(grader_config)
+        grader = gap.Grader(grader_config.afp_list)
         grader.grade(args.f_submit)
 
         f_json = args.f_submit.replace('.py', '_out.json')

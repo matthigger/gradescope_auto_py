@@ -47,7 +47,7 @@ def build_autograder(file_assign, file_zip_out=None, file_include_list=None,
 
     # build config.txt in folder
     grader_config = GraderConfig.from_py(file=file_assign)
-    grader_config.to_txt(folder_tmp / 'config.txt')
+    grader_config.to_json(folder_tmp / 'config.json')
 
     # build other_files.txt in folder
     if file_include_list:
@@ -66,7 +66,7 @@ def build_autograder(file_assign, file_zip_out=None, file_include_list=None,
     shutil.rmtree(folder_tmp)
 
     if verbose:
-        pts_total = sum([afp.pts for afp in grader_config])
+        pts_total = sum([afp.pts for afp in grader_config.afp_list])
         print(f'finished building: {file_zip_out}')
         print(f'when uploading zip, be sure to set autograder points to:'
               f' {pts_total}')

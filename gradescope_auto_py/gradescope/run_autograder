@@ -1,27 +1,35 @@
 #!/usr/bin/env python3
 import json
 import pathlib
+from warnings import warn
 
 import gradescope_auto_py as gap
 
 file_json_out = pathlib.Path('results/results.json')
 folder_submit = pathlib.Path('submission')
 
-# identify file_submit
-list_py = list(folder_submit.glob('*.py'))
-if len(list_py) != 1:
-    # todo: add user error to json output
-    raise FileNotFoundError
-file_submit = list_py[0]
+# get file to run (from config)
+grader_config = gap.GraderConfig.from_json('source/config.json')
+file_submit = folder_submit / grader_config.file_run
+
+if not file_submit.exists():
+    # use unique .py file submitted
+    list_py = list(folder_submit.glob('*.py'))
+    if len(list_py) != 1:
+        raise FileNotFoundError(f'no unique file {file_submit.name}')
+    file_submit = list_py[0]
+
+    # warn user
+    file_expect = grader_config.file_run
+    warn(f'expected {file_expect}, using unique .py file {file_submit}')
 
 # check if syntax error found
-grader_config = gap.GraderConfig.from_txt('source/config.txt')
 json_dict = gap.Grader.check_for_syntax_error(file=file_submit,
-                                              grader_config=grader_config)
+                                              afp_list=grader_config.afp_list)
 
 # run autograder (if no syntax errors found)
 if json_dict is None:
-    grader = gap.Grader(grader_config=grader_config)
+    grader = gap.Grader(afp_list=grader_config.afp_list)
     grader.grade(file=file_submit)
     json_dict = grader.get_json()
 
@@ -29,3 +37,4 @@ if json_dict is None:
 file_json_out.parent.mkdir(exist_ok=True)
 with open(file_json_out, 'w') as f:
     json.dump(json_dict, f, sort_keys=True, indent=4)
+print(f'created: {file_json_out}')

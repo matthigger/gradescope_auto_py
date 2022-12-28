@@ -16,7 +16,7 @@ test_case_list = [TestCaseFile(submit='ex_submit.py',
                                json_expect='ex_results_err_syntax.json')]
 
 
-def gradescope_setup(f_submit, file_auto_zip, folder=None):
+def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
     if folder is None:
         # temp directory
         folder = pathlib.Path(tempfile.TemporaryDirectory().name)
@@ -29,12 +29,19 @@ def gradescope_setup(f_submit, file_auto_zip, folder=None):
     folder_source.mkdir(parents=True)
     folder_submit.mkdir()
 
-    # move submission into proper spot
-    shutil.copy(f_submit, folder_submit / pathlib.Path(f_submit).name)
-
     # unzip autograder
     shutil.unpack_archive(file_auto_zip,
                           extract_dir=folder_source)
+
+    # move submission into proper spot
+    if rename_submit:
+        # rename submission to follow proper name (expected from config)
+        grader_config = GraderConfig.from_json(folder_source / 'config.json')
+        name = grader_config.file_run
+    else:
+        # use given name
+        name = pathlib.Path(f_submit).name
+    shutil.copy(f_submit, folder_submit / name)
 
     # move run_autograder & setup.sh to proper spot, make executable
     for file in ['run_autograder', 'setup.sh']:
@@ -56,7 +63,8 @@ def test_build_autograder():
     for test_idx, test_case in enumerate(test_case_list):
         # setup file structure (as gradescope does)
         folder = gradescope_setup(f_submit=test_case.submit,
-                                  file_auto_zip=file_auto_zip)
+                                  file_auto_zip=file_auto_zip,
+                                  rename_submit=test_idx != 0)
 
         if test_idx == 0:
             # run setup.sh
@@ -65,7 +73,16 @@ def test_build_autograder():
 
         # run run_autograder
         file = (folder / 'run_autograder').resolve()
-        subprocess.run(file, cwd=file.parent)
+        result = subprocess.run(file, cwd=file.parent,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        stderr = result.stderr.decode('utf-8')
+        if test_idx == 0:
+            s = ' warn(f\'expected {file_expect}, using unique .py file {' \
+                'file_submit}\')\n'
+            assert stderr.endswith(s)
+        else:
+            assert stderr == '', f'error in run_autograder: {stderr}'
 
         # check that results are as expected
         with open(test_case.json_expect, 'r') as f:

@@ -6,7 +6,6 @@ import tempfile
 from warnings import warn
 
 from gradescope_auto_py.assert_for_pts import AssertForPoints, NoPointsInAssert
-from gradescope_auto_py.grader_config import GraderConfig
 
 
 class Grader:
@@ -15,15 +14,13 @@ class Grader:
     Attributes:
         afp_pass_dict (dict): keys are AssertForPoints, values are number of
             points earned by student
-        grader_config (GraderConfig): a list of all AssertForPoints which the
-            assignment was configured to have (not necessarily all those in the
-            student submission)
+        afp_list (list): list of all assert-for-points
         stdout (str): stdout from student submission
         stderr (str): stderr from student submission
     """
 
-    def __init__(self, grader_config):
-        self.grader_config = grader_config
+    def __init__(self, afp_list):
+        self.afp_list = afp_list
 
         self.afp_pass_dict = dict()
         self.stdout = ''
@@ -37,8 +34,7 @@ class Grader:
         """
         # prepare submission file to run
         file_prep = tempfile.NamedTemporaryFile(suffix='.py').name
-        s_file_prep, token = self.prep_file(file=file,
-                                            afp_list=self.grader_config)
+        s_file_prep, token = self.prep_file(file=file, afp_list=self.afp_list)
         with open(file_prep, 'w') as f:
             print(s_file_prep, file=f, end='')
 
@@ -84,12 +80,12 @@ class Grader:
             self.afp_pass_dict[afp] = passes
 
     @classmethod
-    def check_for_syntax_error(cls, file, grader_config=None):
+    def check_for_syntax_error(cls, file, afp_list=None):
         """ returns json describing syntax error for gradescope (or None)
 
         Args:
             file (str): submitted file
-            grader_config (GraderConfig): list of AssertForPoints in assignment
+            afp_list (list): list of AssertForPoints in assignment
                 (in event of syntax error, we must mark each as a 0 or
                 gradescope will give "invalid format" error to json output)
 
@@ -105,9 +101,9 @@ class Grader:
             # no syntax errors found
             return None
         except SyntaxError as err:
-            if grader_config is None:
-                grader_config = list()
-                warn(f'syntax error found in {file}: pass grader_config to '
+            if afp_list is None:
+                afp_list = list()
+                warn(f'syntax error found in {file}: pass afp_list to '
                      'ensure json_dict is valid input to gradescope')
 
             s = 'Syntax error found (no points awarded by autograder):'
@@ -117,7 +113,7 @@ class Grader:
 
             return {'output': s,
                     'tests': [afp.get_json_dict(output=msg)
-                              for afp in grader_config]}
+                              for afp in afp_list]}
 
     @classmethod
     def prep_file(cls, file, afp_list=None, token=None):
@@ -200,7 +196,7 @@ class Grader:
                      'output': s_output}
 
         for afp, passes in self.afp_pass_dict.items():
-            if afp in self.grader_config:
+            if afp in self.afp_list:
                 # test case run: configured test case
                 kwargs = dict()
             else:
@@ -213,7 +209,7 @@ class Grader:
             test_list.append(afp.get_json_dict(passes, **kwargs))
 
         # add configured test cases never run
-        for afp in self.grader_config:
+        for afp in self.afp_list:
             if afp not in self.afp_pass_dict.keys():
                 msg = 'Error before assert statement run'
                 test_list.append(afp.get_json_dict(output=msg,

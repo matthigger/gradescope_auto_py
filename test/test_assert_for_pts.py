@@ -1,3 +1,5 @@
+import json
+
 from gradescope_auto_py.assert_for_pts import *
 
 s = "assert 3+2==5, 'addition fail (3 pts)'"
@@ -18,10 +20,10 @@ def test_eq():
 
 
 def test_iter_assert_for_pts():
-    with open('ex_config.txt', 'r') as f:
-        set_config_expect = set(f.read().split('\n'))
+    with open('ex_config.json', 'r') as f:
+        afp_set_expect = set(json.load(f)['afp_list'])
 
     afp_iter = AssertForPoints.iter_assert_for_pts('ex_assign.py')
-    set_config = set([afp.s for afp in afp_iter])
+    afp_set = set([afp.s for afp in afp_iter])
 
-    assert set_config == set_config_expect
+    assert afp_set == afp_set_expect

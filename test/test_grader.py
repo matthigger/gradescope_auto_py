@@ -17,14 +17,14 @@ def test_prep_file():
 
 
 def test_grade():
-    grader = gap.Grader(grader_config=grader_config)
+    grader = gap.Grader(afp_list=grader_config.afp_list)
     grader.grade(file_submit)
-    for afp, passes in zip(grader_config, [True, False, False]):
+    for afp, passes in zip(grader_config.afp_list, [True, False, False]):
         assert grader.afp_pass_dict[afp] == passes
 
     # only first assert scores points before runtime error
     grader.grade(file_submit_err_runtime)
-    afp_pts_dict_expect = {grader_config[0]: True}
+    afp_pts_dict_expect = {grader_config.afp_list[0]: True}
     assert grader.afp_pass_dict == afp_pts_dict_expect
 
 
@@ -36,8 +36,8 @@ def test_check_for_syntax_error():
 
 def test_get_json():
     # manually build a "completed" grader
-    grader = gap.Grader(grader_config=grader_config)
-    for afp in grader_config:
+    grader = gap.Grader(afp_list=grader_config.afp_list)
+    for afp in grader_config.afp_list:
         grader.afp_pass_dict[afp] = True
     grader.stdout = 'test_stdout'
     grader.stderr = 'test_stderr'

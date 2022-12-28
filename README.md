@@ -55,7 +55,7 @@ blank copy of the assignment given to students too :)
 
 The set of all assert-for-points is defined by the file passed
 to `build_autograder()`. You can see them in
-the [config.txt](test/ex_config.txt) included in the autograder `.zip`
+the [config.txt](test/ex_config.json) included in the autograder `.zip`
 produced. A submitted assignment, however, may not have the same set of
 assert-for-points in the body of the code:
 
