@@ -1,0 +1,2 @@
+include gradescope_auto_py/gradescope/setup.sh
+include gradescope_auto_py/gradescope/run_autograder
