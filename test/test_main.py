@@ -9,8 +9,8 @@ def test_main():
     # copy files into temp folder
     tmp_folder = pathlib.Path('.').resolve() / 'tmp'
     tmp_folder.mkdir(exist_ok=True)
-    shutil.copy('ex_assign.py', tmp_folder / 'ex_assign.py')
-    shutil.copy('ex_submit.py', tmp_folder / 'ex_submit.py')
+    shutil.copy('ex/ex_assign.py', tmp_folder / 'ex_assign.py')
+    shutil.copy('ex/ex_submit.py', tmp_folder / 'ex_submit.py')
 
     # prep args
     Args = namedtuple('Args', ['f_assign', 'f_submit'])

@@ -76,5 +76,5 @@ def build_autograder(file_assign, file_zip_out=None, file_include_list=None,
 
 
 if __name__ == '__main__':
-    file_assign = '../../test/ex_assign.py'
+    file_assign = '../../test/ex/ex_assign.py'
     build_autograder(file_assign=file_assign)

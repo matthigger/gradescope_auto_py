@@ -8,12 +8,12 @@ from gradescope_auto_py.gradescope.build_auto import *
 
 TestCaseFile = namedtuple('TestCaseFile', ['submit', 'json_expect'])
 
-test_case_list = [TestCaseFile(submit='ex_submit.py',
-                               json_expect='ex_results.json'),
-                  TestCaseFile(submit='ex_submit_err_runtime.py',
-                               json_expect='ex_results_err_runtime.json'),
-                  TestCaseFile(submit='ex_submit_err_syntax.py',
-                               json_expect='ex_results_err_syntax.json')]
+test_case_list = [TestCaseFile(submit='ex/ex_submit.py',
+                               json_expect='ex/ex_results.json'),
+                  TestCaseFile(submit='ex/ex_submit_err_runtime.py',
+                               json_expect='ex/ex_results_err_runtime.json'),
+                  TestCaseFile(submit='ex/ex_submit_err_syntax.py',
+                               json_expect='ex/ex_results_err_syntax.json')]
 
 
 def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
@@ -57,8 +57,8 @@ def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
 
 def test_build_autograder():
     # build autograder zip
-    file_auto_zip = build_autograder(file_assign='ex_assign.py',
-                                     file_include_list=['ex_other_file.py'])
+    file_auto_zip = build_autograder(file_assign='ex/ex_assign.py',
+                                     file_include_list=['ex/ex_other_file.py'])
 
     for test_idx, test_case in enumerate(test_case_list):
         # setup file structure (as gradescope does)

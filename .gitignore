@@ -6,4 +6,4 @@ tmp*
 /dist/
 /gradescope_auto_py.egg-info/
 /venv/
-/test/ex_assign.zip
+/test/ex/ex_assign.zip
