@@ -7,23 +7,25 @@ from gradescope_auto_py.__main__ import *
 
 
 def test_main():
-    # copy files into temp folder
+    # move example to new folder
     tmp_folder = pathlib.Path(tempfile.TemporaryDirectory().name)
-    tmp_folder.mkdir(exist_ok=True)
-    shutil.copy('ex/hw0/template/hw0.py', tmp_folder / 'hw0.py')
-    shutil.copy('ex/hw0/submit0/hw0.py', tmp_folder / 'hw0.py')
+    folder_ex = pathlib.Path('ex/hw1/template')
+    shutil.copytree(folder_ex, tmp_folder)
 
     # prep args
-    Args = namedtuple('Args', ['f_template', 'f_submit'])
-    args = Args(str(tmp_folder / 'hw0.py'),
-                str(tmp_folder / 'hw0.py'))
+    Args = namedtuple('Args', ['f_template', 'f_submit',
+                               'file_run', 'include_folder'])
+    args = Args(f_template=str(tmp_folder / 'hw1.py'),
+                f_submit=str(tmp_folder / 'hw1.py'),
+                file_run='asdf.py',
+                include_folder=True)
 
     # run main
     main(args)
 
     # ensure output zip and json are created
-    assert (tmp_folder / 'hw0.zip').exists()
-    assert (tmp_folder / 'hw0_out.json').exists()
+    assert (tmp_folder / 'hw1.zip').exists()
+    assert (tmp_folder / 'hw1_out.json').exists()
 
     # cleanup
     shutil.rmtree(tmp_folder)

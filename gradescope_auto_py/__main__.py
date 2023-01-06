@@ -13,6 +13,17 @@ def parse_args(args):
                     'https://github.com/matthigger/gradescope_auto_py/)')
     parser.add_argument('f_template', type=str,
                         help='assignment template (defines pts per assert)')
+    parser.add_argument('--run', dest='file_run', action='store', default=None,
+                        help='name of submitted file to run (there may be '
+                             'many submitted files).  defaults to same name '
+                             'as template file.')
+    parser.add_argument('--supplement', dest='include_folder',
+                        action='store_true',
+                        help='includes all files in folder which holds '
+                             'the template file.  these supplementary files '
+                             'will be copied alongside student submission '
+                             'while autograding (overwriting if need be).  '
+                             'zip files may not be supplementary')
     parser.add_argument('--submit', dest='f_submit', action='store',
                         default=None,
                         help='student copy of assignment.  if passed json '
@@ -28,7 +39,9 @@ def main(args):
 
     """
     # build zip
-    gap.build_autograder(file_template=args.f_template)
+    gap.build_autograder(file_template=args.f_template,
+                         include_folder=args.include_folder,
+                         file_run=args.file_run)
 
     # autograde if need be
     if args.f_submit is not None:

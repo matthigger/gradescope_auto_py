@@ -54,7 +54,7 @@ class GraderConfig:
         Args:
             file_template (str): an input .py file (student or rubric copy)
             file_run (str): name of file to run to perform autograding.  if not
-                passed, file name is used
+                passed, file_template name is used
 
         Returns:
             grader_config (GraderConfig):
