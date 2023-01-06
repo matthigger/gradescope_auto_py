@@ -29,9 +29,9 @@ def test_grade():
 
 
 def test_check_for_syntax_error():
-    assert gap.Grader.check_for_syntax_error(file=file_submit) is None
+    assert gap.Grader.find_syntax_error(file=file_submit) is None
 
-    assert gap.Grader.check_for_syntax_error(file=file_submit_err_syntax)
+    assert gap.Grader.find_syntax_error(file=file_submit_err_syntax)
 
 
 def test_get_json():

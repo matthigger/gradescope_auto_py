@@ -1,40 +1,96 @@
 #!/usr/bin/env python3
 import json
 import pathlib
-from warnings import warn
+import shutil
 
 import gradescope_auto_py as gap
 
-file_json_out = pathlib.Path('results/results.json')
-folder_submit = pathlib.Path('submission')
 
-# get file to run (from config)
-grader_config = gap.GraderConfig.from_json('source/config.json')
-file_submit = folder_submit / grader_config.file_run
+def get_file_run(folder_submit, grader_config):
+    """ gets file to run, attempts from config, else uses unique py
 
-if not file_submit.exists():
-    # use unique .py file submitted
-    list_py = list(folder_submit.glob('*.py'))
-    if len(list_py) != 1:
-        raise FileNotFoundError(f'no unique file {file_submit.name}')
-    file_submit = list_py[0]
+    Args:
+        folder_submit (pathlib.Path): submission folder
+        grader_config (Graderconfig):
 
-    # warn user
-    file_expect = grader_config.file_run
-    warn(f'expected {file_expect}, using unique .py file {file_submit}')
+    Returns:
+        file_run (pathlib.Path): .py file to run
+        msg_out (str): message to be shared with user
+    """
+    msg_out = ''
+    file_run = folder_submit / grader_config.file_run
 
-# check if syntax error found
-json_dict = gap.Grader.check_for_syntax_error(file=file_submit,
-                                              afp_list=grader_config.afp_list)
+    if not file_run.exists():
+        # attempt to use unique .py file submitted
+        list_py = list(folder_submit.glob('*.py'))
+        if len(list_py) != 1:
+            # no unique .py file submitted
+            msg_out = f'invalid submission, no file named: {file_run.name}'
+            return None, msg_out
 
-# run autograder (if no syntax errors found)
-if json_dict is None:
-    grader = gap.Grader(afp_list=grader_config.afp_list)
-    grader.grade(file=file_submit)
-    json_dict = grader.get_json()
+        # unique .py file submitted, we'll run it but warn user
+        file_run = list_py[0]
+        file_expect = grader_config.file_run
+        msg_out = f'expected {file_expect}, using unique .py file {file_run}'
 
-# output json
-file_json_out.parent.mkdir(exist_ok=True)
-with open(file_json_out, 'w') as f:
-    json.dump(json_dict, f, sort_keys=True, indent=4)
-print(f'created: {file_json_out}')
+    return file_run, msg_out
+
+
+def get_file_list(folder):
+    """ gets set of files in folder (removes folder prefix) """
+    s_folder = str(folder)
+    folder = pathlib.Path(folder)
+
+    file_list = list(folder.rglob('*'))
+    return [str(path).removeprefix(s_folder) for path in file_list]
+
+
+if __name__ == '__main__':
+    # config & setup
+    grader_config = gap.GraderConfig.from_json('source/config.json')
+    file_json_out = pathlib.Path('results/results.json')
+    folder_submit = pathlib.Path('submission')
+    folder_source = pathlib.Path('source')
+    folder_include = folder_source / 'include'
+
+    # load config, get file to run
+    file_run, s_output = get_file_run(folder_submit=folder_submit,
+                                      grader_config=grader_config)
+
+    if folder_include.exists():
+        # warn student if they've submitted any files which will be included (
+        # they'll be overwritten)
+        set_intersect = set(get_file_list(folder_include)) & \
+                        set(get_file_list(folder_submit))
+        if set_intersect:
+            s_output += f'overwriting submitted file with autograder copy:\n' \
+                        + '\n'.join(sorted(set_intersect))
+
+        # copy over full contents of source to submission
+        shutil.copytree(folder_include, folder_submit, dirs_exist_ok=True)
+
+    # check if syntax error found in running any py file in submission folder
+    file_list = list(folder_submit.rglob('*.py'))
+    error = gap.Grader.find_syntax_error(file_list=file_list)
+
+    if error is None:
+        # run autograder (no syntax errors found)
+        grader = gap.Grader(afp_list=grader_config.afp_list)
+        grader.grade(file=file_run)
+        json_dict = grader.get_json(s_output_prefix=s_output)
+    else:
+        # report syntax error (don't run autograder)
+        s = 'Syntax error found (no points awarded by autograder):'
+        s = '\n'.join([s, str(error), error.text])
+
+        msg = 'Error before assert statement run'
+
+        json_dict = {'output': s_output + s,
+                     'tests': [afp.get_json_dict(output=msg)
+                               for afp in grader_config.afp_list]}
+
+    # output json
+    file_json_out.parent.mkdir(exist_ok=True)
+    with open(file_json_out, 'w') as f:
+        json.dump(json_dict, f, sort_keys=True, indent=4)
+    print(f'created: {file_json_out}')

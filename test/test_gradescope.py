@@ -57,14 +57,12 @@ def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
 
 def test_build_autograder():
     # build autograder zip
-    file_auto_zip = build_autograder(file_assign='ex/ex_assign.py',
-                                     file_include_list=['ex/ex_other_file.py'])
+    file_auto_zip = build_autograder(file_assign='ex/ex_assign.py')
 
     for test_idx, test_case in enumerate(test_case_list):
         # setup file structure (as gradescope does)
         folder = gradescope_setup(f_submit=test_case.submit,
-                                  file_auto_zip=file_auto_zip,
-                                  rename_submit=test_idx != 0)
+                                  file_auto_zip=file_auto_zip)
 
         if test_idx == 0:
             # run setup.sh
@@ -77,12 +75,7 @@ def test_build_autograder():
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         stderr = result.stderr.decode('utf-8')
-        if test_idx == 0:
-            s = ' warn(f\'expected {file_expect}, using unique .py file {' \
-                'file_submit}\')\n'
-            assert stderr.endswith(s)
-        else:
-            assert stderr == '', f'error in run_autograder: {stderr}'
+        assert stderr == '', f'error in run_autograder: {stderr}'
 
         # check that results are as expected
         with open(test_case.json_expect, 'r') as f:

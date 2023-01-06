@@ -3,7 +3,6 @@ import secrets
 import subprocess
 import sys
 import tempfile
-from warnings import warn
 
 from gradescope_auto_py.assert_for_pts import AssertForPoints, NoPointsInAssert
 
@@ -46,6 +45,8 @@ class Grader:
         # record output from stdout and stderr & parse for which asserts pass
         self.stdout = result.stdout.decode('utf-8')
         self.stderr = result.stderr.decode('utf-8')
+
+        # build afp_pass_dict
         self.afp_pass_dict = dict()
         self.parse_output(token=token)
 
@@ -80,19 +81,29 @@ class Grader:
             self.afp_pass_dict[afp] = passes
 
     @classmethod
-    def check_for_syntax_error(cls, file, afp_list=None):
-        """ returns json describing syntax error for gradescope (or None)
+    def find_syntax_error(cls, file=None, file_list=None):
+        """ returns first syntax error found, otherwise returns False
 
         Args:
             file (str): submitted file
-            afp_list (list): list of AssertForPoints in assignment
-                (in event of syntax error, we must mark each as a 0 or
-                gradescope will give "invalid format" error to json output)
+            file_list (list): list of files
 
         Returns:
-            json_dict (dict): contains key 'output' whose value is a string
-                which describes error
+            error: None if no syntax error, otherwise returns first syntax
+                error found
         """
+        assert (file is None) != (file_list is None), \
+            'file xor file_list required'
+
+        if file_list is not None:
+            # run find_syntax_error on every file
+            for file in file_list:
+                error = cls.find_syntax_error(file=file)
+                if error is not None:
+                    # syntax error found, return it
+                    return error
+            return None
+
         with open(file, 'r') as f:
             s_file = f.read()
 
@@ -100,20 +111,8 @@ class Grader:
             ast.parse(s_file)
             # no syntax errors found
             return None
-        except SyntaxError as err:
-            if afp_list is None:
-                afp_list = list()
-                warn(f'syntax error found in {file}: pass afp_list to '
-                     'ensure json_dict is valid input to gradescope')
-
-            s = 'Syntax error found (no points awarded by autograder):'
-            s = '\n'.join([s, str(err), err.text])
-
-            msg = 'Error before assert statement run'
-
-            return {'output': s,
-                    'tests': [afp.get_json_dict(output=msg)
-                              for afp in afp_list]}
+        except SyntaxError as error:
+            return error
 
     @classmethod
     def prep_file(cls, file, afp_list=None, token=None):
@@ -182,11 +181,13 @@ class Grader:
 
         return ast.unparse(node_root), token
 
-    def get_json(self):
+    def get_json(self, s_output_prefix=''):
         """ gets json in gradescope format
 
         https://gradescope-autograders.readthedocs.io/en/latest/specs/#output-format
 
+        Args:
+            s_output_prefix (str): prefixes "output" field in json
         """
         s_output = self.stderr
 
