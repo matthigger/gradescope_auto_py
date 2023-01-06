@@ -48,11 +48,11 @@ class GraderConfig:
                             afp_list=afp_list)
 
     @classmethod
-    def from_py(cls, file, file_run=None):
-        """ builds configuration file for assignment from a given rubric
+    def from_py(cls, file_template, file_run=None):
+        """ builds configuration from a template assignment
 
         Args:
-            file (str): an input .py file (student or rubric copy)
+            file_template (str): an input .py file (student or rubric copy)
             file_run (str): name of file to run to perform autograding.  if not
                 passed, file name is used
 
@@ -61,10 +61,10 @@ class GraderConfig:
         """
         if file_run is None:
             # default file_run name (same as input py file)
-            file_run = pathlib.Path(file).name
+            file_run = pathlib.Path(file_template).name
 
         # read in only assert for points (strings) from file
-        afp_list = list(AssertForPoints.iter_assert_for_pts(file))
+        afp_list = list(AssertForPoints.iter_assert_for_pts(file_template))
 
         # ensure each is unique
         for afp, count in Counter(afp_list).items():

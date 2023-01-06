@@ -2,13 +2,13 @@ import gradescope_auto_py as gap
 import json
 
 # build config
-file_assign = 'ex/ex_assign.py'
+file_assign = 'ex/hw0/template/hw0.py'
 grader_config = gap.GraderConfig.from_py(file_assign)
 
-file_submit = 'ex/ex_submit.py'
-file_submit_err_syntax = 'ex/ex_submit_err_syntax.py'
-file_submit_err_runtime = 'ex/ex_submit_err_runtime.py'
-file_prep_expect = 'ex/ex_submit_prep.py'
+file_submit = 'ex/hw0/submit0/hw0.py'
+file_submit_err_syntax = 'ex/hw0/submit1/hw0.py'
+file_submit_err_runtime = 'ex/hw0/submit2/hw0.py'
+file_prep_expect = 'ex/hw0/expect/assign_prep.py'
 
 
 def test_prep_file():

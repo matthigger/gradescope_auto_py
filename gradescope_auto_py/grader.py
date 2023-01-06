@@ -116,7 +116,7 @@ class Grader:
 
     @classmethod
     def prep_file(cls, file, afp_list=None, token=None):
-        """ loads file, replaces each assert-for-points with print of results
+        """ loads file, replaces each assert-for-points with print of expect
 
         every assert-for-points output is a single line which has format
 

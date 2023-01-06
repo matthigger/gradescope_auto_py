@@ -7,7 +7,7 @@
 ## Usage
 
 1. Define assert-for-points by adding a point value to any `assert` statements in a blank copy of the assignment (
-   e.g. [ex_assign.py](test/ex/ex_assign_pretty.py))
+   e.g. [example_hw.py](test/ex/example_hw.py))
 
 ```python
 assert get_area(radius=1) == pi, 'case0: area from r=1 (2 pts)'
@@ -55,7 +55,7 @@ blank copy of the assignment given to students too :)
 
 The set of all assert-for-points is defined by the file passed
 to `build_autograder()`. You can see them in
-the [config.txt](test/ex/ex_config.json) included in the autograder `.zip`
+the [config.txt](test/ex/hw0/expect/config.json) included in the autograder `.zip`
 produced. A submitted assignment, however, may not have the same set of
 assert-for-points in the body of the code:
 

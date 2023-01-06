@@ -48,7 +48,7 @@ def get_file_list(folder):
 if __name__ == '__main__':
     # config & setup
     grader_config = gap.GraderConfig.from_json('source/config.json')
-    file_json_out = pathlib.Path('results/results.json')
+    file_json_out = pathlib.Path('expect/expect.json')
     folder_submit = pathlib.Path('submission')
     folder_source = pathlib.Path('source')
     folder_include = folder_source / 'include'

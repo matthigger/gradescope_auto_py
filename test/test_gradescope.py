@@ -6,14 +6,11 @@ from collections import namedtuple
 
 from gradescope_auto_py.gradescope.build_auto import *
 
+# build test cases
 TestCaseFile = namedtuple('TestCaseFile', ['submit', 'json_expect'])
-
-test_case_list = [TestCaseFile(submit='ex/ex_submit.py',
-                               json_expect='ex/ex_results.json'),
-                  TestCaseFile(submit='ex/ex_submit_err_runtime.py',
-                               json_expect='ex/ex_results_err_runtime.json'),
-                  TestCaseFile(submit='ex/ex_submit_err_syntax.py',
-                               json_expect='ex/ex_results_err_syntax.json')]
+test_case_list = [TestCaseFile(submit=f'ex/hw0/submit{idx}/hw0.py',
+                               json_expect=f'ex/hw0/expect/case{idx}.json')
+                  for idx in range(3)]
 
 
 def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
@@ -57,7 +54,7 @@ def gradescope_setup(f_submit, file_auto_zip, folder=None, rename_submit=True):
 
 def test_build_autograder():
     # build autograder zip
-    file_auto_zip = build_autograder(file_assign='ex/ex_assign.py')
+    file_auto_zip = build_autograder(file_template='ex/hw0/template/hw0.py')
 
     for test_idx, test_case in enumerate(test_case_list):
         # setup file structure (as gradescope does)
@@ -77,10 +74,10 @@ def test_build_autograder():
         stderr = result.stderr.decode('utf-8')
         assert stderr == '', f'error in run_autograder: {stderr}'
 
-        # check that results are as expected
+        # check that expect are as expected
         with open(test_case.json_expect, 'r') as f:
             json_expected = json.load(f)
-        with open(folder / 'results' / 'results.json', 'r') as f:
+        with open(folder / 'expect' / 'expect.json', 'r') as f:
             json_observed = json.load(f)
 
         # normalize file names (rm tempfile from error message)

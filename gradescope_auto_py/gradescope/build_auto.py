@@ -8,20 +8,20 @@ from gradescope_auto_py.grader_config import GraderConfig
 folder_src = pathlib.Path(__file__).parent
 
 
-def build_autograder(file_assign, file_zip_out=None, include_folder=False,
+def build_autograder(file_template, file_zip_out=None, include_folder=False,
                      verbose=True, **kwargs):
     """ builds a directory containing autograder in gradescope format
 
     Args:
-        file_assign (str): assignment file, used to generate a list of asserts
+        file_template (str): template file, used to generate a list of asserts
             for points
         file_zip_out (str): name of zip to create (contains setup.sh,
             requirements.txt, run_autograder.py & config.txt).  defaults to
             same name as assignment with zip suffix
-        include_folder (bool): if True, all files in folder of file_assign are
-            included in autograder zip.  they'll be unpacked next to student
-            submitted files (overwritten by student files if name conflicts)
-            and available for autograder running
+        include_folder (bool): if True, all files in folder of file_template
+            are included in autograder zip.  they'll be unpacked next to
+            student submitted files (overwriting student files if name
+            conflicts)
         verbose (bool): toggles message to warn user to set "autograder points"
 
     Returns:
@@ -31,20 +31,20 @@ def build_autograder(file_assign, file_zip_out=None, include_folder=False,
     folder_tmp = pathlib.Path(tempfile.mkdtemp())
 
     # move file_assign, run_autograder.py & setup.sh to folder
-    file_assign = pathlib.Path(file_assign).resolve()
+    file_template = pathlib.Path(file_template).resolve()
     for file in [folder_src / 'run_autograder',
                  folder_src / 'setup.sh',
-                 file_assign]:
+                 file_template]:
         shutil.copy(file, folder_tmp / file.name)
 
     # build config.json in folder
-    grader_config = GraderConfig.from_py(file=file_assign, **kwargs)
+    grader_config = GraderConfig.from_py(file_template=file_template, **kwargs)
     grader_config.to_json(folder_tmp / 'config.json')
 
     if include_folder:
         # copy all files (except file_run, which should come from student)
         folder_include = folder_tmp / 'include'
-        shutil.copytree(file_assign.parent, folder_include)
+        shutil.copytree(file_template.parent, folder_include)
         shutil.rmtree(folder_include / grader_config.file_run.name)
 
     # build requirements.txt
@@ -53,7 +53,7 @@ def build_autograder(file_assign, file_zip_out=None, include_folder=False,
 
     # zip it up
     if file_zip_out is None:
-        file_zip_out = file_assign.with_suffix('.zip')
+        file_zip_out = file_template.with_suffix('.zip')
     shutil.make_archive(file_zip_out.with_suffix(''), 'zip', folder_tmp)
 
     # clean up
@@ -64,11 +64,6 @@ def build_autograder(file_assign, file_zip_out=None, include_folder=False,
         print(f'finished building: {file_zip_out}')
         print(f'when uploading zip, be sure to set autograder points to:'
               f' {pts_total}')
-        print('(inconsistent values cause "results not formatted correctly")')
+        print('(inconsistent values cause "expect not formatted correctly")')
 
     return file_zip_out
-
-
-if __name__ == '__main__':
-    file_assign = '../../test/ex/ex_assign.py'
-    build_autograder(file_assign=file_assign, include_folder=True)
