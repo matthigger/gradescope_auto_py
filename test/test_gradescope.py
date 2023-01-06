@@ -75,7 +75,7 @@ def test_build_autograder():
         # check that expect are as expected
         with open(test_case.json_expect, 'r') as f:
             json_expected = json.load(f)
-        file_json_observe = folder / 'expect' / 'expect.json'
+        file_json_observe = folder / 'results' / 'results.json'
         with open(file_json_observe, 'r') as f:
             json_observed = json.load(f)
 
@@ -85,9 +85,6 @@ def test_build_autograder():
             file_new = f'File {pathlib.Path(file).name}'
             s_output = s_output.replace(file, file_new)
         json_observed['output'] = s_output
-
-        if json_observed != json_expected:
-            s_json = json.dumps(json_observed, indent=4, sort_keys=True)
 
         assert json_expected == json_observed, test_case.name
 
