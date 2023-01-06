@@ -60,6 +60,11 @@ def build_autograder(file_template, file_zip_out=None, include_folder=False,
     process = subprocess.run(['pipreqs', folder_tmp])
     assert process.returncode == 0, 'problem building requirements.txt'
 
+    # include quick .txt file with total points
+    pts_total = sum([afp.pts for afp in grader_config.afp_list])
+    with open(folder_tmp / 'total_points.txt', 'w') as f:
+        print(pts_total, file=f)
+
     # zip it up
     if file_zip_out is None:
         file_zip_out = file_template.with_suffix('.zip')
@@ -69,10 +74,7 @@ def build_autograder(file_template, file_zip_out=None, include_folder=False,
     shutil.rmtree(folder_tmp)
 
     if verbose:
-        pts_total = sum([afp.pts for afp in grader_config.afp_list])
         print(f'finished building: {file_zip_out}')
-        print(f'when uploading zip, be sure to set autograder points to:'
-              f' {pts_total}')
-        print('(inconsistent values cause "expect not formatted correctly")')
+        print(f'total points: {pts_total}')
 
     return file_zip_out
