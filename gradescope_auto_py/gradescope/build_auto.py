@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
+from warnings import warn
 
 from gradescope_auto_py.grader_config import GraderConfig
 
@@ -42,10 +43,18 @@ def build_autograder(file_template, file_zip_out=None, include_folder=False,
     grader_config.to_json(folder_tmp / 'config.json')
 
     if include_folder:
-        # copy all files (except file_run, which should come from student)
+        # copy all files
         folder_include = folder_tmp / 'include'
         shutil.copytree(file_template.parent, folder_include)
-        shutil.rmtree(folder_include / grader_config.file_run.name)
+
+        # delete file_run, if present, which should come from student
+        (folder_include / grader_config.file_run).unlink(missing_ok=True)
+
+        # remove any zip files from include (prevents previous autograders from
+        # being included)
+        for file_zip in folder_include.rglob('*.zip'):
+            warn(f'removing zip file from include: {file_zip}')
+            file_zip.unlink()
 
     # build requirements.txt
     process = subprocess.run(['pipreqs', folder_tmp])

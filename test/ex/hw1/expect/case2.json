@@ -1,0 +1,11 @@
+{
+    "output": "expected hw1.py, using unique .py file submission/wrong_hw_name.py\n",
+    "tests": [
+        {
+            "max_score": 10.0,
+            "name": "assert get_n_lines(file='supplement.py', n=2) == s_expect, '10 pts'",
+            "score": 10.0,
+            "visibility": "visible"
+        }
+    ]
+}

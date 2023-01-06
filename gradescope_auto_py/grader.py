@@ -1,5 +1,7 @@
 import ast
+import pathlib
 import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,20 +27,31 @@ class Grader:
         self.stdout = ''
         self.stderr = ''
 
-    def grade(self, file):
+    def grade(self, file_run, overwrite=False):
         """ grades submission (gets attributes: afp_pass_dict, stdout & stderr)
 
         Args:
-            file (str): student submission for assignment
+            file_run (str): student submission for assignment
+            overwrite (bool): if True, overwrites file_run with its prepared
+                version
         """
+        if not overwrite:
+            # copy folder to new location (we'll modify .py files within it,
+            # original should be unchanged)
+            file_run = pathlib.Path(file_run).resolve()
+            folder = pathlib.Path(tempfile.TemporaryDirectory().name)
+            shutil.copytree(file_run.parent, folder)
+            file_run = folder / file_run.name
+
         # prepare submission file to run
-        file_prep = tempfile.NamedTemporaryFile(suffix='.py').name
-        s_file_prep, token = self.prep_file(file=file, afp_list=self.afp_list)
-        with open(file_prep, 'w') as f:
+        s_file_prep, token = self.prep_file(file=file_run,
+                                            afp_list=self.afp_list)
+        with open(file_run, 'w') as f:
             print(s_file_prep, file=f, end='')
 
         # run submission & store stdout & stderr
-        result = subprocess.run([sys.executable, file_prep],
+        result = subprocess.run([sys.executable, file_run],
+                                cwd=file_run.parent,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
 
@@ -194,7 +207,7 @@ class Grader:
         # init json
         test_list = list()
         json_dict = {'tests': test_list,
-                     'output': s_output}
+                     'output': s_output_prefix + s_output}
 
         for afp, passes in self.afp_pass_dict.items():
             if afp in self.afp_list:

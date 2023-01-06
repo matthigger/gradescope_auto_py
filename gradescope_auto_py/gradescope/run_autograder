@@ -31,7 +31,7 @@ def get_file_run(folder_submit, grader_config):
         # unique .py file submitted, we'll run it but warn user
         file_run = list_py[0]
         file_expect = grader_config.file_run
-        msg_out = f'expected {file_expect}, using unique .py file {file_run}'
+        msg_out = f'expected {file_expect}, using unique .py file {file_run}\n'
 
     return file_run, msg_out
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     if error is None:
         # run autograder (no syntax errors found)
         grader = gap.Grader(afp_list=grader_config.afp_list)
-        grader.grade(file=file_run)
+        grader.grade(file_run=file_run)
         json_dict = grader.get_json(s_output_prefix=s_output)
     else:
         # report syntax error (don't run autograder)
